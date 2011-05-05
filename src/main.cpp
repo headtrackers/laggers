@@ -8,6 +8,8 @@
 #include <GL/glut.h>
 #endif
 
+#include <ctime>
+
 // This macro checks the return code that all OpenNI calls make
 // and throws an error if the return code is an error. Use this
 // after all calls to OpenNI objects. Great for debugging.
@@ -23,10 +25,22 @@ return rc;													\
 }
 
 bool run = true;
+int cnt = 0;
+time_t prevtime = time(0);
 
 void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
-    fprintf(stdout, "X: %-15f Y: %-15f Z: %-15f\n", pPosition->X, pPosition->Y, pPosition->Z);
-    //std::cout << "\r" << "X: " << pPosition->X << " Y: " << pPosition->Y << " Z: " << pPosition->Z;
+    time_t tmptime = time(0);
+
+    time(&tmptime);
+
+	if (difftime(tmptime, prevtime) >= 1) {
+		prevtime = tmptime;
+		fprintf(stdout, "Hz: %d\n", (cnt));
+		cnt = 0;
+	}
+
+    cnt++;
+    fprintf(stdout, "%ld: X: %-15f Y: %-15f Z: %-15f\n", tmptime, pPosition->X, pPosition->Y, pPosition->Z);
 }
 
 void XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt)
