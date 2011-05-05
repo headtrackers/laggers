@@ -42,3 +42,4 @@ build
 debug*
 
 *.1
+*.pbxproj
