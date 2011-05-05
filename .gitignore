@@ -40,3 +40,5 @@ build
 
 *.psd
 debug*
+
+*.1
