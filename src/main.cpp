@@ -24,6 +24,11 @@ return rc;													\
 
 bool run = true;
 
+void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
+    fprintf(stdout, "X: %-15f Y: %-15f Z: %-15f\n", pPosition->X, pPosition->Y, pPosition->Z);
+    //std::cout << "\r" << "X: " << pPosition->X << " Y: " << pPosition->Y << " Z: " << pPosition->Z;
+}
+
 void XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt)
 {
 	printf("Session progress (%6.2f,%6.2f,%6.2f) - %6.2f [%s]\n", ptFocusPoint.X, ptFocusPoint.Y, ptFocusPoint.Z, fProgress,  strFocus);
@@ -60,6 +65,9 @@ int main(int argc, char* argv[])
     nRetVal = hands.Create(context);
     CHECK_RC(nRetVal, "Initialize Hands node");
     
+    XnCallbackHandle handPositionCallBack;
+    hands.RegisterHandCallbacks(NULL, &HandUpdate, NULL, NULL, handPositionCallBack);
+    
     // Create a Hands tracker node
     xn::GestureGenerator gesture;
     nRetVal = gesture.Create(context);
@@ -82,7 +90,6 @@ int main(int argc, char* argv[])
         nRetVal = context.WaitAnyUpdateAll();
         CHECK_RC(nRetVal, "Wait for new data");
         sessionManager.Update(&context);
-        std::cout << "test" << std::endl;
     }
     
     
