@@ -1,4 +1,4 @@
-###This is a school project for the Virtual Interactive Environments 
+###This is a school project for the Interactive Virtual Environments 
 
 #Getting started
 ##Depedencies
