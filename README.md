@@ -10,5 +10,5 @@ List of depedencies:
 ##Obtain the code
 You will need `git` to obtain the code. It can be fetched the following way:
 
-	git clone https://github.com/headtrackers/laggers
+	git clone git://github.com/headtrackers/laggers.git
 
