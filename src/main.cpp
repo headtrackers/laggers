@@ -1,6 +1,17 @@
 #include <XnCppWrapper.h>
 #include "XnVNite.h"
 #include <iostream>
+#include "Camera.h"
+#include "Definitions.h"
+#include "Cylinder.h"
+#include "Donut.h"
+#include "Path.h"
+
+#include <vector>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <sstream>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -40,6 +51,82 @@ int lastX = 0;
 int lastY = 0;
 int lastZ = 0;
 
+static int N;
+static float dt, d;
+static int dsim;
+static int dump_frames;
+static int frame_number;
+
+static int viewport[4];
+static double modelview[16];
+static double projection[16];
+
+static int win_id;
+static int win_x, win_y;
+static int omx, omy, mx, my;
+static double mappedPos[3];
+
+static Camera camera;
+static Donut ring;
+static Path path;
+
+static bool print = false;
+
+static float light_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
+static float light_ambient[] = { .2, .2, .2, 1.0 };
+static float light_position[] = { 1.0, 1.0, -4.0, 1.0 }; /* Infinite light location. */
+
+void ViewOrtho() {
+	int width = glutGet(GLUT_WINDOW_WIDTH);
+	int height = glutGet(GLUT_WINDOW_HEIGHT);
+    
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glDisable(GL_DEPTH_TEST);
+	//glDisable(GL_LIGHTING);
+	glOrtho(0, width, height, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+}
+
+void ViewPerspective() {
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	//glEnable(GL_LIGHTING);
+	glEnable(GL_DEPTH_TEST);
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+}
+
+void changeLatency() {
+    coordinateQueue = std::queue<XnPoint3D>();
+    
+    latencytimer = clock();
+    
+    latencyChanged = true;
+}
+
+/*
+ ----------------------------------------------------------------------
+ OpenGL specific drawing routines
+ ----------------------------------------------------------------------
+ */
+
+static void post_display(void) {
+	frame_number++;
+    
+	glFlush(); //Finish rendering
+	glutSwapBuffers();
+}
+
+/*
+ ----------------------------------------------------------------------
+ Kinect callback routines
+ ----------------------------------------------------------------------
+ */
+
 void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
     XnPoint3D curPoint;
     
@@ -74,16 +161,14 @@ void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, c
         coordinateQueue.pop();
     }
     
+    float z;
+	glReadPixels(lastX, viewport[3] - lastY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+	gluUnProject((float) lastX, (float) (viewport[3] - lastY), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
+	if (print)
+		printf(">>> %f\n", z);
+    
     std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
 //    fprintf(stdout, "%ld: X: %-15f Y: %-15f Z: %-15f\n", tmptime, pPosition->X, pPosition->Y, pPosition->Z);
-}
-
-void changeLatency() {
-    coordinateQueue = std::queue<XnPoint3D>();
-    
-    latencytimer = clock();
-    
-    latencyChanged = true;
 }
 
 void XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt)
@@ -102,6 +187,12 @@ void XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
     return;
 }
 
+/*
+ ----------------------------------------------------------------------
+ GLUT callback routines
+ ----------------------------------------------------------------------
+ */
+
 void update() {
     nRetVal = context.WaitAnyUpdateAll();
     CHECK_RC(nRetVal, "Wait for new data");
@@ -114,11 +205,48 @@ void key_func(unsigned char key, int x, int y) {
         case 'Q':
             exit(0);
             break;
+        case '0':
+            camera.Reset();
+            break;
+            
+            //camera movement cases
         case '+':
+            camera.MoveZ(MOVE_AMT);
+            break;
+        case '-':
+            camera.MoveZ(-MOVE_AMT);
+            break;
+            
+            //camera rotation cases
+        case 'd':
+            camera.RotateY(ROT_AMT);
+            break;
+        case 'g':
+            camera.RotateY(-ROT_AMT);
+            break;
+            
+        case 'r':
+            camera.RotateX(-ROT_AMT);
+            break;
+        case 'f':
+            camera.RotateX(ROT_AMT);
+            break;
+        case 'e':
+            camera.RotateZ(ROT_AMT);
+            break;
+        case 't':
+            camera.RotateZ(-ROT_AMT);
+            break;
+            
+        case '1':
+            break;
+        case '3':
+            break;
+        case 'a':
             latency += 25;
             changeLatency();
             break;
-        case '-':
+        case 's':
             if(latency > 0) {
                 latency -= 25;
             }
@@ -127,32 +255,150 @@ void key_func(unsigned char key, int x, int y) {
     }
 }
 
-static void draw() {
-    glClear ( GL_COLOR_BUFFER_BIT );
+static void special_key_func(int key, int x, int y) {
+	switch (key) {
+        case GLUT_KEY_UP:
+            camera.MoveY(-MOVE_AMT);
+            break;
+        case GLUT_KEY_DOWN:
+            camera.MoveY(MOVE_AMT);
+            break;
+            
+        case GLUT_KEY_LEFT:
+            camera.MoveX(MOVE_AMT);
+            break;
+        case GLUT_KEY_RIGHT:
+            camera.MoveX(-MOVE_AMT);
+            break;
+	}
     
-    glutSwapBuffers();
 }
 
-static void initGraphics() {
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-    glutInitWindowSize(640, 480);
-    glutCreateWindow("Spanners");
+
+
+static void passive_func(int x, int y) {
+	mx = x;
+	my = y;
     
-    glViewport ( 0, 0, 640, 480 );
-	glMatrixMode ( GL_PROJECTION );
-	glLoadIdentity ();
-	gluOrtho2D ( 0.0f, 640, 0.0f, 480 );
-	glClearColor ( 1.0f, 1.0f, 1.0f, 1.0f );
-	glClear ( GL_COLOR_BUFFER_BIT );
+	float z;
+	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
+	if (print)
+		printf(">>> %f\n", z);
+}
+
+static void reshape_func(int x, int y) {
+	if (y == 0 || x == 0)
+		return; //Nothing is visible then, so return
+	//Set a new projection matrix
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	//Angle of view:40 degrees
+	//Near clipping plane distance: 0.5
+	//Far clipping plane distance: 20.0
+	gluPerspective(45.0, (GLdouble) x / (GLdouble) y, 1.5, 50.0);
+	glMatrixMode(GL_MODELVIEW);
+	glViewport(0, 0, x, y); //Use the whole window for rendering
+    
+    
+	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+	glGetDoublev(GL_PROJECTION_MATRIX, projection);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+    
+}
+
+static void timer_func(int amt) {
+    
+	ring.SetPosition(Vector3(-mappedPos[0], -mappedPos[1], 0.0f));
+    
+	glutPostRedisplay();
+	glutTimerFunc(TIMER_FUNC_STEP, timer_func, 0);
+}
+
+static void display_func(void) {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+    
+	camera.Init();
+    
+	glPushMatrix(); //render
+	glTranslatef(0.0, 0.0, ZOFFSET);
+	glScalef(0.1, 0.1, 0.1);
+	glColor3f(0.8f, 0.2f, 0.2f);
+	//glutSolidCube(3.0);
+	ring.Render();
+	path.Render();
+	glPopMatrix();
+    
+	ViewPerspective();
+    
+	post_display();
+    
+}
+
+/*
+ * Scene 1, straight line and the ring
+ * */
+void initScene1() {
+	const float width = 5.0;
+    
+	path.AddPoint(Point3(-width, 0.0, 0.0));
+	path.AddPoint(Point3(width, 0.0, 0.0));
+    
+	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
+}
+
+/*
+ ----------------------------------------------------------------------
+ open_glut_window --- open a glut compatible window and set callbacks
+ ----------------------------------------------------------------------
+ */
+
+static void init(void) {
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH); //For animations you should use double buffering
+	glutInitWindowSize(win_x, win_y);
+	//Create a window with rendering context and everything else we need
+	glutCreateWindow("IVE");
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glClearColor(0.0, 0.0, 0.0, 0.0);
+    
+	/* Enable a single OpenGL light. */
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_COLOR_MATERIAL);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+    
+	glDepthFunc(GL_LESS);
+	glEnable(GL_DEPTH_TEST);
+    
 }
 
 int main(int argc, char* argv[])
 {
     glutInit(&argc, argv);
-    initGraphics();
-    glutDisplayFunc(&draw);
-    glutIdleFunc(&update);
-    glutKeyboardFunc(&key_func);
+    
+    if (argc == 1) {
+		N = 64;
+		dt = 0.5f;
+		d = 5.f;
+		fprintf(stderr, "Using defaults : N=%d dt=%g d=%g\n", N, dt, d);
+	} else {
+		N = atoi(argv[1]);
+		dt = atof(argv[2]);
+		d = atof(argv[3]);
+	}
+    
+    dsim = 0;
+	dump_frames = 0;
+	frame_number = 0;
+    
+	win_x = 720;
+	win_y = 720;
+	init();
+	initScene1();
     
     // Initialize context object
     nRetVal = context.Init();
@@ -186,8 +432,13 @@ int main(int argc, char* argv[])
     nRetVal = context.StartGeneratingAll();
     CHECK_RC(nRetVal, "Start generating data");
     
-    glutMainLoop(); 
-    
+    glutKeyboardFunc(key_func);
+	glutSpecialFunc(special_key_func);
+	glutReshapeFunc(reshape_func);
+	glutTimerFunc(TIMER_FUNC_STEP, timer_func, 0);
+	glutDisplayFunc(display_func);
+    glutIdleFunc(update);
+	glutMainLoop(); 
 	
 	return 0;
 }
