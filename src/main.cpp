@@ -9,7 +9,7 @@
 #endif
 
 #include <ctime>
-#include <vector>
+#include <queue>
 #include <utility>
 
 // This macro checks the return code that all OpenNI calls make
@@ -35,15 +35,22 @@ xn::Context context;
 int latency = 0;
 bool latencyChanged = false;
 clock_t latencytimer;
-std::vector<std::pair<int, int> > coordinateQueue;
+std::queue<XnPoint3D> coordinateQueue;
 int lastX = 0;
 int lastY = 0;
+int lastZ = 0;
 
 void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
+    XnPoint3D curPoint;
+    
+    curPoint.X = pPosition->X;
+    curPoint.Y = pPosition->Y;
+    curPoint.Z = pPosition->Z;
+    
     time_t tmptime = time(0);
     clock_t curtime = clock();
     
-    coordinateQueue.push_back(std::make_pair(pPosition->X, pPosition->Y));
+    coordinateQueue.push(curPoint);
     
     if(latencyChanged && difftime(curtime, latencytimer) / 100 > latency) {
         latencyChanged = false;
@@ -60,17 +67,19 @@ void XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, c
 //    cnt++;
     
     if(latencyChanged == false) {
-        lastX = coordinateQueue.at(0).first;
-        lastY = coordinateQueue.at(0).second;
-        coordinateQueue.erase(coordinateQueue.begin());
+        lastX = coordinateQueue.front().X;
+        lastY = coordinateQueue.front().Y;
+        lastZ = coordinateQueue.front().Z;
+        
+        coordinateQueue.pop();
     }
     
-    std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Size of vector: " << coordinateQueue.size() << std::endl;
+    std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
 //    fprintf(stdout, "%ld: X: %-15f Y: %-15f Z: %-15f\n", tmptime, pPosition->X, pPosition->Y, pPosition->Z);
 }
 
 void changeLatency() {
-    coordinateQueue.clear();
+    coordinateQueue = std::queue<XnPoint3D>();
     
     latencytimer = clock();
     
@@ -107,14 +116,12 @@ void key_func(unsigned char key, int x, int y) {
             break;
         case '+':
             latency += 25;
-            std::cout << "Latency: " << latency << "ms" << std::endl;
             changeLatency();
             break;
         case '-':
             if(latency > 0) {
                 latency -= 25;
             }
-            std::cout << "Latency: " << latency << "ms" << std::endl;
             changeLatency();
             break;
     }
