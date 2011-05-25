@@ -1,8 +1,8 @@
-CC=clang
+CC=g++
 
 all:
-	${CC} main.cpp -o laggers -I /usr/include/ni -I /usr/include/nite\
-		-lOpenNI -lglut -lXnVNite
+	${CC} *.cpp -o laggers -I /usr/include/ni -I /usr/include/nite\
+		-lOpenNI -lglut -lXnVNite -lGLU
 
 clean:
 	rm -rf *.o laggers

@@ -199,7 +199,10 @@ XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
 void update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
-	CHECK_RC(nRetVal, "Wait for new data");
+	if (nRetVal != XN_STATUS_OK) {
+		fprintf(stdout, "%s failed: %s\n", "Wait for new data", xnGetStatusString(nRetVal));
+	}
+	//CHECK_RC(nRetVal, "Wait for new data");
 	sessionManager.Update(&context);
 }
 
