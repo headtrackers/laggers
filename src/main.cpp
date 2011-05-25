@@ -42,6 +42,9 @@ int latency;
 int lastX;
 int lastY;
 int lastZ;
+double intput_area_height = 0.5;
+int intput_area_width = 1.0;
+
 bool latencyChanged = false;
 bool run = true;
 clock_t latencytimer;
