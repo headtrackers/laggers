@@ -1,17 +1,21 @@
-#include <XnCppWrapper.h>
-#include "XnVNite.h"
+#include <ctime>
 #include <iostream>
+#include <queue>
+#include <sstream>
+#include <utility>
+#include <vector>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <XnCppWrapper.h>
+
+#include "XnVNite.h"
 #include "Camera.h"
 #include "Definitions.h"
 #include "Cylinder.h"
 #include "Donut.h"
 #include "Path.h"
-
-#include <vector>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <sstream>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -19,9 +23,6 @@
 #include <GL/glut.h>
 #endif
 
-#include <ctime>
-#include <queue>
-#include <utility>
 
 // This macro checks the return code that all OpenNI calls make
 // and throws an error if the return code is an error. Use this
