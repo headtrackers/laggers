@@ -2,8 +2,8 @@
 #define __CAMERA
 
 
-#include"SpaceObject.h"
-#include<cmath>
+#include "SpaceObject.h"
+#include <cmath>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>

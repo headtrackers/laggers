@@ -6,7 +6,7 @@
  */
 
 #include "SpaceObject.h"
-#include<stdio.h>
+#include <stdio.h>
 
 SpaceObject::SpaceObject() {
 	// TODO Auto-generated constructor stub
@@ -57,10 +57,10 @@ void SpaceObject::RotateX(GLfloat angle){
 
 	//frontVector.rotateX(angle);
 
-	frontVector=frontVector.rotateArbitrary(angle, rightVector);
+	frontVector = frontVector.rotateArbitrary(angle, rightVector);
 	frontVector.normalize();
 
-	upVector =rightVector.crossProduct(frontVector);
+	upVector = rightVector.crossProduct(frontVector);
 	print();
 }
 
@@ -72,7 +72,7 @@ void SpaceObject::RotateY(GLfloat angle){
 	rotationAngles.setY(tempAngle);
 
 	//rightVector.rotateY(angle);
-	rightVector=rightVector.rotateArbitrary(angle, upVector);
+	rightVector = rightVector.rotateArbitrary(angle, upVector);
 	rightVector.normalize();
 
 	frontVector = upVector.crossProduct(rightVector);

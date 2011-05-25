@@ -1,5 +1,5 @@
-#include"Camera.h"
-#include<stdio.h>
+#include "Camera.h"
+#include <stdio.h>
 
 Camera::Camera(){
 	frontVector=frontVectorInit=Vector3(0.0, 0.0, -5.0);

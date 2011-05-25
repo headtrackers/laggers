@@ -1,6 +1,16 @@
-#include <XnCppWrapper.h>
-#include "XnVNite.h"
+#include <ctime>
 #include <iostream>
+#include <queue>
+#include <sstream>
+#include <utility>
+#include <vector>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <XnCppWrapper.h>
+
+#include "XnVNite.h"
 #include "Camera.h"
 #include "Definitions.h"
 #include "Cylinder.h"
@@ -22,9 +32,6 @@
 #include <GL/glut.h>
 #endif
 
-#include <ctime>
-#include <queue>
-#include <utility>
 
 // This macro checks the return code that all OpenNI calls make
 // and throws an error if the return code is an error. Use this
@@ -212,7 +219,10 @@ XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
 void update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
-	CHECK_RC(nRetVal, "Wait for new data");
+	if (nRetVal != XN_STATUS_OK) {
+		fprintf(stdout, "%s failed: %s\n", "Wait for new data", xnGetStatusString(nRetVal));
+	}
+	//CHECK_RC(nRetVal, "Wait for new data");
 	sessionManager.Update(&context);
 }
 
