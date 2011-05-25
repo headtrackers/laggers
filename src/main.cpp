@@ -42,8 +42,11 @@ int latency;
 int lastX;
 int lastY;
 int lastZ;
-double intput_area_height = 0.5;
-int intput_area_width = 1.0;
+int input_offset_x;
+int input_offset_y;
+
+
+double input_scale = 2.0;
 
 bool latencyChanged = false;
 bool run = true;
@@ -155,8 +158,8 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	}
 
 	if (latencyChanged == false) {
-		lastX = coordinateQueue.front().X;
-		lastY = coordinateQueue.front().Y;
+		lastX = ((-1) * coordinateQueue.front().X / input_scale) + input_offset_x;
+		lastY = ((-1) * coordinateQueue.front().Y / input_scale) + input_offset_y;
 		lastZ = coordinateQueue.front().Z;
 
 		coordinateQueue.pop();
@@ -211,6 +214,7 @@ key_func(unsigned char key, int x, int y)
 	switch (key) {
 		case 'q':
 		case 'Q':
+			context.Shutdown();
 			exit(0);
 			break;
 		case '0':
@@ -414,10 +418,13 @@ main(int argc, char* argv[])
 	dump_frames = 0;
 	frame_number = 0;
 
-	win_x = 720;
-	win_y = 720;
+	win_x = 800;
+	win_y = 600;
 	init();
 	initScene1();
+	
+	input_offset_x = win_x / 2;
+	input_offset_y = win_y / 2;
 
 	// Initialize context object
 	nRetVal = context.Init();
