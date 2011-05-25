@@ -6,7 +6,6 @@ Camera::Camera(){
 	rightVector=rightVectorInit=Vector3(1.0, 0.0, 0.0);
 	upVector=upVectorInit=Vector3(0.0, 1.0, 0.0);
 
-	
 	posVector=posVectorInit=Vector3(0.0, 0.0, 0.0);
 	rotationAngles=rotationAnglesInit=Vector3(0.0, 0.0, 0.0);
 
