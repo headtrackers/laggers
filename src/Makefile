@@ -1,4 +1,4 @@
-CC=g++
+CC=clang
 
 all:
 	${CC} *.cpp -o laggers -I /usr/include/ni -I /usr/include/nite\
