@@ -8,10 +8,13 @@
 #include "Path.h"
 
 #include <vector>
-#include <stdlib.h>
-#include <stdio.h>
-
+#include <cstdlib>
+#include <cstdio>
+#include <iostream>
+#include <fstream>
 #include <sstream>
+#include <string>
+#include <cmath>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -37,6 +40,8 @@ printf("%s failed: %s\n", what, xnGetStatusString(rc)); \
 return rc; \
 }
 
+using namespace std;
+
 int cnt;
 int latency;
 int lastX;
@@ -46,13 +51,16 @@ int input_offset_x;
 int input_offset_y;
 
 
-double input_scale = 2.0;
+double input_scale = 1.5;
+double max_path_block = 0.2;
 
 bool latencyChanged = false;
 bool run = true;
 clock_t latencytimer;
 time_t prevtime = time(0);
+
 std::queue<XnPoint3D> coordinateQueue;
+std::vector<pair<double, double> > path_coordinates;
 
 XnStatus nRetVal = XN_STATUS_OK;
 XnVSessionManager sessionManager;
@@ -355,6 +363,58 @@ display_func(void)
 	post_display();
 }
 
+void readCoordinates(string filename) {
+	ifstream input(filename.c_str(), ifstream::in); 
+	
+	double curvex, curvey;
+	
+	while (input >> curvex >> curvey) {
+		if(path_coordinates.size() > 0) {
+			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0) + pow(path_coordinates.back().second - curvey, 2.0));
+			
+			double prevx = path_coordinates.back().first;
+			double prevy = path_coordinates.back().second;
+			
+			double dirx = -1;
+			double diry = -1;
+			
+			if(curvex > path_coordinates.back().first) {
+				dirx = -1;
+			}
+			
+			if (curvey > path_coordinates.back().second) {
+				diry = -1;
+			}
+			
+			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
+			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
+			
+			int steps = tmplength / max_path_block;
+			
+			if(steps > 0) {
+				
+				for (int i = 0; i < steps; i++) {
+					prevx += stepx;
+					prevy += stepy;
+					path_coordinates.push_back(make_pair(prevx, prevy));
+					cout << prevx << " " << prevy << endl;
+				}
+			}
+			
+			if(stepx != curvex) {
+				path_coordinates.push_back(make_pair(curvex, curvey));
+				cout << curvex << " " << curvey << endl;
+			}
+		}
+		else {
+			path_coordinates.push_back(make_pair(curvex, curvey));
+			cout << curvex << " " << curvey << endl;
+		}
+	}
+	
+	input.close();
+}
+
 /*
  * Scene 1, straight line and the ring
  * */
@@ -362,9 +422,13 @@ void
 initScene1()
 {
 	const float width = 5.0;
+	
+	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
+		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
+	}
 
-	path.AddPoint(Point3(-width, 0.0, 0.0));
-	path.AddPoint(Point3(width, 0.0, 0.0));
+//	path.AddPoint(Point3(-width, 0.0, 0.0));
+//	path.AddPoint(Point3(width, 0.0, 0.0));
 
 	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 }
@@ -421,6 +485,8 @@ main(int argc, char* argv[])
 	win_x = 800;
 	win_y = 600;
 	init();
+	
+	readCoordinates("curve1.txt");
 	initScene1();
 	
 	input_offset_x = win_x / 2;
