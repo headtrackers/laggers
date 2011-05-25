@@ -383,12 +383,14 @@ void readCoordinates(string filename) {
 	while (input >> curvex >> curvey) {
 		if (path_coordinates.size() > 0) {
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0) + pow(path_coordinates.back().second - curvey, 2.0));
+			
+			path_coordinates.clear();
 
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
-			double dirx = -1;
-			double diry = -1;
+			double dirx = 1;
+			double diry = 1;
 
 			if (curvex > path_coordinates.back().first) {
 				dirx = -1;
