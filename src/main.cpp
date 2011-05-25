@@ -397,18 +397,15 @@ void readCoordinates(string filename) {
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
-					cout << prevx << " " << prevy << endl;
 				}
 			}
 			
 			if(stepx != curvex) {
 				path_coordinates.push_back(make_pair(curvex, curvey));
-				cout << curvex << " " << curvey << endl;
 			}
 		}
 		else {
 			path_coordinates.push_back(make_pair(curvex, curvey));
-			cout << curvex << " " << curvey << endl;
 		}
 	}
 	
@@ -486,7 +483,7 @@ main(int argc, char* argv[])
 	win_y = 600;
 	init();
 	
-	readCoordinates("curve1.txt");
+	readCoordinates("data/curve1.txt");
 	initScene1();
 	
 	input_offset_x = win_x / 2;
