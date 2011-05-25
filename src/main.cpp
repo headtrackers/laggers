@@ -219,9 +219,11 @@ XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
 void update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
+	/* XXX Matias !
 	if (nRetVal != XN_STATUS_OK) {
 		fprintf(stdout, "%s failed: %s\n", "Wait for new data", xnGetStatusString(nRetVal));
 	}
+	*/
 	//CHECK_RC(nRetVal, "Wait for new data");
 	sessionManager.Update(&context);
 }
@@ -374,43 +376,42 @@ display_func(void)
 }
 
 void readCoordinates(string filename) {
-	ifstream input(filename.c_str(), ifstream::in); 
-	
+	ifstream input(filename.c_str(), ifstream::in);
+
 	double curvex, curvey;
-	
+
 	while (input >> curvex >> curvey) {
-		if(path_coordinates.size() > 0) {
+		if (path_coordinates.size() > 0) {
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0) + pow(path_coordinates.back().second - curvey, 2.0));
-			
+
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
-			
+
 			double dirx = -1;
 			double diry = -1;
-			
-			if(curvex > path_coordinates.back().first) {
+
+			if (curvex > path_coordinates.back().first) {
 				dirx = -1;
 			}
-			
+
 			if (curvey > path_coordinates.back().second) {
 				diry = -1;
 			}
-			
+
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
-			
+
 			int steps = tmplength / max_path_block;
-			
-			if(steps > 0) {
-				
+
+			if (steps > 0) {
 				for (int i = 0; i < steps; i++) {
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
 				}
 			}
-			
-			if(stepx != curvex) {
+
+			if (stepx != curvex) {
 				path_coordinates.push_back(make_pair(curvex, curvey));
 			}
 		}
@@ -418,7 +419,7 @@ void readCoordinates(string filename) {
 			path_coordinates.push_back(make_pair(curvex, curvey));
 		}
 	}
-	
+
 	input.close();
 }
 
@@ -429,7 +430,7 @@ void
 initScene1()
 {
 	const float width = 5.0;
-	
+
 	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
 		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
 	}
@@ -492,7 +493,7 @@ main(int argc, char* argv[])
 	win_x = 800;
 	win_y = 600;
 	init();
-	
+
 	readCoordinates("data/curve1.txt");
 	initScene1();
 	
