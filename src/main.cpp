@@ -401,6 +401,8 @@ readCoordinates(const string filename)
 {
 	double curvex, curvey;
 	ifstream input;
+	
+	path_coordinates.clear();
 
 	input.open(filename.c_str(), ios::in);
 
@@ -413,24 +415,12 @@ readCoordinates(const string filename)
 		if (path_coordinates.size() > 0) {
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
 					+ pow(path_coordinates.back().second - curvey, 2.0));
-			
-			//path_coordinates.clear();
 
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
 			double dirx = -1;
 			double diry = -1;
-
-			/*
-			if (curvex > path_coordinates.back().first) {
-				dirx = -1;
-			}
-
-			if (curvey > path_coordinates.back().second) {
-				diry = -1;
-			}
-			*/
 
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
@@ -529,7 +519,7 @@ main(int argc, char *argv[])
 	win_y = 600;
 	init();
 
-	readCoordinates("../data/curve1.txt");
+	readCoordinates("data/curve1.txt");
 	initScene1();
 	
 	input_offset_x = win_x / 2;
@@ -569,6 +559,11 @@ main(int argc, char *argv[])
 		nRetVal = context.StartGeneratingAll();
 		CHECK_RC(nRetVal, "Start generating data");
 		glutIdleFunc(update);
+	}
+	else {
+		glutMouseFunc(mouse_func);
+		glutMotionFunc(motion_func);
+		glutPassiveMotionFunc(passive_func);
 	}
 
 	glutKeyboardFunc(key_func);
