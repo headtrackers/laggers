@@ -381,16 +381,18 @@ readCoordinates(const string filename)
 
 	while (input >> curvex >> curvey) {
 		if (path_coordinates.size() > 0) {
-			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0) + pow(path_coordinates.back().second - curvey, 2.0));
+			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
+					+ pow(path_coordinates.back().second - curvey, 2.0));
 			
-			path_coordinates.clear();
+			//path_coordinates.clear();
 
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
-			double dirx = 1;
-			double diry = 1;
+			double dirx = -1;
+			double diry = -1;
 
+			/*
 			if (curvex > path_coordinates.back().first) {
 				dirx = -1;
 			}
@@ -398,6 +400,7 @@ readCoordinates(const string filename)
 			if (curvey > path_coordinates.back().second) {
 				diry = -1;
 			}
+			*/
 
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
@@ -409,7 +412,7 @@ readCoordinates(const string filename)
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
-					fprintf(stdout, "-------> %.2f, %.2f\n", prevx, prevy);
+					//fprintf(stdout, "-- 2 --> %.2f, %.2f\n", prevx, prevy);
 				}
 			}
 
