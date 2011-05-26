@@ -56,7 +56,7 @@ int input_offset_y;
 
 
 double input_scale = 1.5;
-double max_path_block = 0.2;
+double max_path_block = 0.5;
 
 bool latencyChanged = false;
 bool run = true;
@@ -65,6 +65,7 @@ time_t prevtime = time(0);
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
+std::queue<pair<double, double> > checkpoints;
 
 XnStatus nRetVal = XN_STATUS_OK;
 XnVSessionManager sessionManager;
@@ -314,6 +315,37 @@ passive_func(int x, int y)
 		printf(">>> %f\n", z);
 }
 
+/* Will read path_coordinates to checkpoints */
+void
+read_checkpoints()
+{
+	while (checkpoints.size() > 1)
+		checkpoints.pop();
+
+	for (int i=0; i < path_coordinates.size(); i++)
+		checkpoints.push(path_coordinates.at(i));
+}
+
+/* Mark checkpoint visited. checkpoints is FIFO, thus first element will be removed. */
+void
+visit_checkpoint()
+{
+	if (checkpoints.size() < 1)
+		return;
+
+	fprintf(stdout, "Will remove: %.2f, %.2f\n", checkpoints.front().first, checkpoints.front().second);
+	checkpoints.pop();
+}
+
+double
+checkpoint_coordinate_distance(pair<double, double> p1, pair<double, double> p2)
+{
+	double xdelta = p1.first - p2.first;
+	double ydelta = p1.second - p2.second;
+
+	return sqrt((xdelta << 1) + (ydelta << 1));
+}
+
 static void
 reshape_func(int x, int y)
 {
@@ -372,6 +404,8 @@ readCoordinates(const string filename)
 	double curvex, curvey;
 	ifstream input;
 
+	path_coordinates.clear();
+
 	input.open(filename.c_str(), ios::in);
 
 	if (!input) {
@@ -384,23 +418,11 @@ readCoordinates(const string filename)
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
 					+ pow(path_coordinates.back().second - curvey, 2.0));
 			
-			//path_coordinates.clear();
-
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
 			double dirx = -1;
 			double diry = -1;
-
-			/*
-			if (curvex > path_coordinates.back().first) {
-				dirx = -1;
-			}
-
-			if (curvey > path_coordinates.back().second) {
-				diry = -1;
-			}
-			*/
 
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
@@ -500,6 +522,7 @@ main(int argc, char *argv[])
 	init();
 
 	readCoordinates("../data/curve1.txt");
+	read_checkpoints();
 	initScene1();
 	
 	input_offset_x = win_x / 2;
