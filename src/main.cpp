@@ -152,18 +152,23 @@ void getMeasurements() {
 		}
 	}
 			
-	double prevLength;
+	closestPoint = path_coordinates.at(index);
+	
+	double prevLength = INT_MAX;
+	double nextLength = INT_MAX;
 	
 	if(index > 0) {
 		prevLength = sqrt(pow(X - path_coordinates.at(index-1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
 	}
 	
-	double nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
+	if(index < path_coordinates.size() - 1) {
+		nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index+1).second, 2.0));
+	}
 	
 	if(index > 0 && prevLength < nextLength) {
 		secondPoint = path_coordinates.at(index-1);
 	}
-	else {
+	else if(index < path_coordinates.size() - 1) {
 		secondPoint = path_coordinates.at(index+1);
 	}
 	
@@ -512,7 +517,7 @@ readCoordinates(const string filename)
 		if (path_coordinates.size() > 0) {
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
 					+ pow(path_coordinates.back().second - curvey, 2.0));
-
+			
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
@@ -529,11 +534,10 @@ readCoordinates(const string filename)
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
-					//fprintf(stdout, "-- 2 --> %.2f, %.2f\n", prevx, prevy);
 				}
 			}
 
-			if (stepx != curvex) {
+			if (prevx != curvex) {
 				path_coordinates.push_back(make_pair(curvex, curvey));
 			}
 		}
