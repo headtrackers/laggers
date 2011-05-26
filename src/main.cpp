@@ -373,7 +373,7 @@ checkpoint_coordinate_distance(pair<double, double> p1, pair<double, double> p2)
 	double xdelta = p1.first - p2.first;
 	double ydelta = p1.second - p2.second;
 
-	return sqrt((xdelta << 1) + (ydelta << 1));
+	return sqrt((xdelta * xdelta) + (ydelta * ydelta));
 }
 
 static void
