@@ -44,3 +44,4 @@ debug*
 *.1
 *.pbxproj
 src/laggers
+src/tilting/
