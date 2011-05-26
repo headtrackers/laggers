@@ -307,7 +307,34 @@ special_key_func(int key, int x, int y)
 	}
 }
 
+static void mouse_func(int button, int st, int x, int y) {
+	mx = x;
+	my = y;
+	
+	lastX = mx;
+	lastY = my;
 
+	if (st != GLUT_UP)
+		return;
+
+	switch (button) {
+
+	//mouse key down
+	case GLUT_LEFT_BUTTON:
+		printf("mouse: %d - %d ------------- window: %f - %f -%f\n", x, y, mappedPos[0], mappedPos[1], mappedPos[2]);
+		print = !print;
+		break;
+
+	}
+}
+
+static void motion_func(int x, int y) {
+	mx = x;
+	my = y;
+	
+	lastX = mx;
+	lastY = my;
+}
 
 static void
 passive_func(int x, int y)
@@ -316,6 +343,9 @@ passive_func(int x, int y)
 
 	mx = x;
 	my = y;
+	
+	lastX = mx;
+	lastY = my;
 
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
