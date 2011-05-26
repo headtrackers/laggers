@@ -56,7 +56,11 @@ void Donut::Render() {
 	glRotatef(rotationAngles[0], rightVectorInit[0], rightVectorInit[1], rightVectorInit[2]);
 	glPushMatrix(); //5
 	glColor3f(0.8, 0.8, 0.2);
+	glPushAttrib(GL_NORMALIZE);
+	glEnable(GL_NORMALIZE);
 	glutSolidTorus(inRadius, outRadius, 20, 20);
+	glDisable(GL_NORMALIZE);
+	glPopAttrib();
 	glPopMatrix(); //5
 	glPopMatrix(); //4
 	glPopMatrix(); //3

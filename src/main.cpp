@@ -1,7 +1,12 @@
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <queue>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -17,14 +22,6 @@
 #include "Donut.h"
 #include "Path.h"
 
-#include <vector>
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <cmath>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -219,12 +216,6 @@ XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
 void update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
-	/* XXX Matias !
-	if (nRetVal != XN_STATUS_OK) {
-		fprintf(stdout, "%s failed: %s\n", "Wait for new data", xnGetStatusString(nRetVal));
-	}
-	*/
-	//CHECK_RC(nRetVal, "Wait for new data");
 	sessionManager.Update(&context);
 }
 
@@ -405,23 +396,33 @@ display_func(void)
 	post_display();
 }
 
-void readCoordinates(string filename) {
-	ifstream input(filename.c_str(), ifstream::in);
-
+void
+readCoordinates(const string filename)
+{
 	double curvex, curvey;
+	ifstream input;
+
+	input.open(filename.c_str(), ios::in);
+
+	if (!input) {
+		cout << "Error opening file: " << filename << endl;
+		exit(1);
+	}
 
 	while (input >> curvex >> curvey) {
 		if (path_coordinates.size() > 0) {
-			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0) + pow(path_coordinates.back().second - curvey, 2.0));
+			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
+					+ pow(path_coordinates.back().second - curvey, 2.0));
 			
-			path_coordinates.clear();
+			//path_coordinates.clear();
 
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
 
-			double dirx = 1;
-			double diry = 1;
+			double dirx = -1;
+			double diry = -1;
 
+			/*
 			if (curvex > path_coordinates.back().first) {
 				dirx = -1;
 			}
@@ -429,6 +430,7 @@ void readCoordinates(string filename) {
 			if (curvey > path_coordinates.back().second) {
 				diry = -1;
 			}
+			*/
 
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
@@ -440,6 +442,7 @@ void readCoordinates(string filename) {
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
+					//fprintf(stdout, "-- 2 --> %.2f, %.2f\n", prevx, prevy);
 				}
 			}
 
@@ -503,7 +506,7 @@ init(void)
 }
 
 int
-main(int argc, char* argv[])
+main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 
@@ -526,7 +529,7 @@ main(int argc, char* argv[])
 	win_y = 600;
 	init();
 
-	readCoordinates("data/curve1.txt");
+	readCoordinates("../data/curve1.txt");
 	initScene1();
 	
 	input_offset_x = win_x / 2;
@@ -538,37 +541,41 @@ main(int argc, char* argv[])
 
 	xn::DepthGenerator depth;
 	nRetVal = depth.Create(context);
-	CHECK_RC(nRetVal, "Initialize Depth node");
+	
+	// Let it draw the picture without kinect attached
+	if (nRetVal == XN_STATUS_OK) {
+		CHECK_RC(nRetVal, "Initialize Depth node");
 
-	// Create a Hands tracker node
-	xn::HandsGenerator hands;
-	nRetVal = hands.Create(context);
-	CHECK_RC(nRetVal, "Initialize Hands node");
+		// Create a Hands tracker node
+		xn::HandsGenerator hands;
+		nRetVal = hands.Create(context);
+		CHECK_RC(nRetVal, "Initialize Hands node");
 
-	XnCallbackHandle handPositionCallBack;
-	hands.RegisterHandCallbacks(NULL, &HandUpdate, NULL, NULL, handPositionCallBack);
+		XnCallbackHandle handPositionCallBack;
+		hands.RegisterHandCallbacks(NULL, &HandUpdate, NULL, NULL, handPositionCallBack);
 
-	// Create a Hands tracker node
-	xn::GestureGenerator gesture;
-	nRetVal = gesture.Create(context);
-	CHECK_RC(nRetVal, "Initialize Gesture node");
+		// Create a Hands tracker node
+		xn::GestureGenerator gesture;
+		nRetVal = gesture.Create(context);
+		CHECK_RC(nRetVal, "Initialize Gesture node");
 
-	// Initialize NITE session manager
-	nRetVal = sessionManager.Initialize(&context, "Wave,Click", "RaiseHand");
-	CHECK_RC(nRetVal, "Initialize session manager");
+		// Initialize NITE session manager
+		nRetVal = sessionManager.Initialize(&context, "Wave,Click", "RaiseHand");
+		CHECK_RC(nRetVal, "Initialize session manager");
 
-	sessionManager.RegisterSession(NULL, &SessionStart, &SessionEnd, &SessionProgress);
+		sessionManager.RegisterSession(NULL, &SessionStart, &SessionEnd, &SessionProgress);
 
-	// Start generating data
-	nRetVal = context.StartGeneratingAll();
-	CHECK_RC(nRetVal, "Start generating data");
+		// Start generating data
+		nRetVal = context.StartGeneratingAll();
+		CHECK_RC(nRetVal, "Start generating data");
+		glutIdleFunc(update);
+	}
 
 	glutKeyboardFunc(key_func);
 	glutSpecialFunc(special_key_func);
 	glutReshapeFunc(reshape_func);
 	glutTimerFunc(TIMER_FUNC_STEP, timer_func, 0);
 	glutDisplayFunc(display_func);
-	glutIdleFunc(update);
 	glutMainLoop(); 
 
 	return 0;
