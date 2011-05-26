@@ -67,6 +67,7 @@ time_t prevtime = time(0);
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
+std::queue<pair<double, double> > checkpoints;
 
 XnStatus nRetVal = XN_STATUS_OK;
 XnVSessionManager sessionManager;
@@ -399,6 +400,37 @@ passive_func(int x, int y)
 		printf(">>> %f\n", z);
 }
 
+/* Will read path_coordinates to checkpoints */
+void
+read_checkpoints()
+{
+	while (checkpoints.size() > 1)
+		checkpoints.pop();
+
+	for (int i=0; i < path_coordinates.size(); i++)
+		checkpoints.push(path_coordinates.at(i));
+}
+
+/* Mark checkpoint visited. checkpoints is FIFO, thus first element will be removed. */
+void
+visit_checkpoint()
+{
+	if (checkpoints.size() < 1)
+		return;
+
+	fprintf(stdout, "Will remove: %.2f, %.2f\n", checkpoints.front().first, checkpoints.front().second);
+	checkpoints.pop();
+}
+
+double
+checkpoint_coordinate_distance(pair<double, double> p1, pair<double, double> p2)
+{
+	double xdelta = p1.first - p2.first;
+	double ydelta = p1.second - p2.second;
+
+	return sqrt((xdelta * xdelta) + (ydelta * ydelta));
+}
+
 static void
 reshape_func(int x, int y)
 {
@@ -465,6 +497,8 @@ readCoordinates(const string filename)
 	double curvex, curvey;
 	ifstream input;
 	
+	path_coordinates.clear();
+
 	path_coordinates.clear();
 
 	input.open(filename.c_str(), ios::in);
@@ -583,6 +617,7 @@ main(int argc, char *argv[])
 	init();
 
 	readCoordinates("../data/curve1.txt");
+	read_checkpoints();
 	initScene1();
 	
 	startMeasuring();
