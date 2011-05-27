@@ -24,6 +24,7 @@
 #include "Cylinder.h"
 #include "Donut.h"
 #include "Path.h"
+#include"MathTerms.h"
 
 
 #ifdef __APPLE__
@@ -67,7 +68,7 @@ double sumDistance = 0.0;
 double epsilon = 1.0;
 
 
-
+bool followline = true;
 bool latencyChanged = false;
 bool run = true;
 bool measure = false;
@@ -97,13 +98,13 @@ static int viewport[4];
 static double modelview[16];
 static double projection[16];
 
-static int win_id;
 static int win_x, win_y;
-static int omx, omy, mx, my;
+static int mx, my;
 static double mappedPos[3];
 
 static Camera camera;
 static Donut ring;
+static Donut followed;
 static Path path;
 
 static bool print = false;
@@ -148,6 +149,13 @@ changeLatency()
 	latencyChanged = true;
 	
 	cout << "Latency: " << latency << endl;
+}
+
+pair<double, double> getRandomCoords() {	
+	double x = ((double) rand() / RAND_MAX) * 40.0 - 20.0;
+	double y = ((double) rand() / RAND_MAX) * 30.0 - 15.0;
+	
+	return make_pair(x, y);
 }
 
 void
@@ -279,7 +287,6 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	curPoint.Y = pPosition->Y;
 	curPoint.Z = pPosition->Z;
 
-	time_t tmptime = time(0);
 	clock_t curtime = clock();
 
 	coordinateQueue.push(curPoint);
@@ -306,7 +313,7 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	if (measure) {
 		getMeasurements();
 	}
-	else {
+	else if(followline) {
 		if(checkpoints.size() > 0) {
 			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				startMeasuring();
@@ -316,8 +323,11 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 			}
 		}
 	}
+	else {
+		;
+	}
 	
-	if(testing) {
+	if(testing && followline) {
 		if (checkpoints.size() > 0) {
 			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				checkpoints.pop_front();
@@ -417,11 +427,13 @@ readCoordinates(const string filename)
 }
 
 /*
- * Scene 1, straight line and the ring
+ * Scene 1, straight line and the ball
  * */
 void
-initScene1()
+initCurveScene()
 {
+	followline = true;
+	
 	const float width = 5.0;
 	
 	path = Path();
@@ -434,6 +446,25 @@ initScene1()
 	//	path.AddPoint(Point3(width, 0.0, 0.0));
 	
 	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
+}
+
+/*
+ * Scene 2, follow moving ball
+ * */
+void
+initBallScene() {
+	followline = false;
+	
+	const float width = 5.0;
+	
+	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
+	
+	pair<double, double> coords = getRandomCoords();
+	
+	cout << coords.first << " " << coords.second << endl;
+	
+	followed.SetPosition(Vector3(coords.first, coords.second, 0.0));
+	followed.setColour(Vector3(1.0, 0.1, 0.1));
 }
 
 /*
@@ -493,9 +524,10 @@ key_func(unsigned char key, int x, int y)
 		case '1':
 			readCoordinates("../data/curve1.txt");
 			read_checkpoints();
-			initScene1();
+			initCurveScene();
 			break;
-		case '3':
+		case '5':
+			initBallScene();
 			break;
 		case 's':
 			latency += 25;
@@ -645,10 +677,16 @@ display_func(void)
 	glColor3f(0.8f, 0.2f, 0.2f);
 	//glutSolidCube(3.0);
 	ring.Render();
-	path.Render();
 	
-	for (list<Donut>::iterator i = checkpoints.begin(); i != checkpoints.end(); i++) {
-		(*i).Render();
+	if(followline) {
+		path.Render();
+	
+		for (list<Donut>::iterator i = checkpoints.begin(); i != checkpoints.end(); i++) {
+			(*i).Render();
+		}
+	}
+	else {
+		followed.Render();
 	}
 	
 	glPopMatrix();
@@ -690,6 +728,8 @@ init(void)
 int
 main(int argc, char *argv[])
 {
+	srand ( time(NULL) );
+	
 	glutInit(&argc, argv);
 
 	if (argc == 1) {
@@ -713,7 +753,7 @@ main(int argc, char *argv[])
 
 	readCoordinates("../data/curve1.txt");
 	read_checkpoints();
-	initScene1();
+	initCurveScene();
 	
 	input_offset_x = win_x / 2;
 	input_offset_y = win_y / 2;

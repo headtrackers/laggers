@@ -17,10 +17,12 @@ public:
 
 	void Render();
 	void setRadius(float radius);
+	void setColour(Vector3 col);
 private:
 	float inRadius;
 	float outRadius;
 	GLUquadric *qobj;
+	Vector3 colour;
 };
 
 #endif /* DONUT_H_ */

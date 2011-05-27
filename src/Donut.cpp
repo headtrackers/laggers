@@ -7,7 +7,7 @@
 
 #include "Donut.h"
 
-Donut::Donut() {
+Donut::Donut() : colour(Vector3(0.8, 0.8, 0.2)) {
 	frontVector = frontVectorInit = Vector3(0.0, 0.0, 1.0);
 	rightVector = rightVectorInit = Vector3(1.0, 0.0, 0.0);
 	upVector = upVectorInit = Vector3(0.0, -1.0, 0.0);
@@ -55,7 +55,7 @@ void Donut::Render() {
 	glPushMatrix(); //4
 	glRotatef(rotationAngles[0], rightVectorInit[0], rightVectorInit[1], rightVectorInit[2]);
 	glPushMatrix(); //5
-	glColor3f(0.8, 0.8, 0.2);
+	glColor3f(colour[0], colour[1], colour[2]);
 	glPushAttrib(GL_NORMALIZE);
 	glEnable(GL_NORMALIZE);
 	glutSolidSphere(inRadius, 20, 20);
@@ -67,6 +67,10 @@ void Donut::Render() {
 	glPopMatrix(); //2
 	glPopMatrix(); //1
 #endif
+}
+
+void Donut::setColour(Vector3 col) {
+	colour = col;
 }
 
 void Donut::setRadius(float radius) {
