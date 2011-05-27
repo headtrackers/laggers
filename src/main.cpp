@@ -59,6 +59,7 @@ int lastZ;
 int input_offset_x;
 int input_offset_y;
 int cntMeasurements = 0;
+int followtime = 3;
 
 double input_scale = 1.3;
 double max_path_block = 1.0;
@@ -67,7 +68,9 @@ double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
 
-double normalspeed = 0.01;
+double fastspeed = 0.4;
+double normalspeed = 0.2;
+double slowspeed = 0.05;
 
 bool latencyChanged = false;
 bool run = true;
@@ -79,6 +82,7 @@ time_t prevtime = time(0);
 
 timeval starttime;
 timeval endtime;
+timeval sTime, eTime;
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
@@ -250,6 +254,8 @@ getMeasurements()
 		double resultLength = 0.0;
 		Vector3 p1, p2;
 		
+		cntMeasurements++;
+		
 		p1 = followed.GetPosition();
 		p2 = ball.GetPosition();
 
@@ -353,17 +359,16 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				startMeasuring();
 				testing = true;
-
 				getMeasurements();
 			}
 		}
 	}
 	else {
 		if(coordinate_distance(ball.GetPosition()[0], ball.GetPosition()[1], followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
+			startMeasuring();
 			testing = true;
 			getMeasurements();
-			
-			cout << "first" << endl;
+			gettimeofday(&sTime, NULL);
 		}
 	}
 	
@@ -380,6 +385,24 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 		}
 	}
 	else if(testing) {
+		gettimeofday(&eTime, NULL);
+		
+		timeval dTime;
+		
+		timersub(&eTime, &sTime, &dTime);
+		
+		int timediff = sTime.tv_sec - eTime.tv_sec;
+		
+		cout << sTime.tv_sec << "start" << endl;
+		cout << eTime.tv_sec <<  endl;
+		cout << dTime.tv_sec << endl;
+		
+		if (dTime.tv_sec > followtime) {
+			measure = false;
+			testing = false;
+			stopMeasuring();
+		}
+		
 		if(coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
 			followedTarget = getRandomCoords();
 		}
@@ -387,9 +410,7 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 			
 			double dx = (followedTarget.first - followed.GetPosition()[0]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
 			double dy = (followedTarget.second - followed.GetPosition()[1]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
-			
-			cout << dx << endl;
-			
+						
 			followed.SetPosition(Vector3(followed.GetPosition()[0] + dx * normalspeed, followed.GetPosition()[1] + dy * normalspeed, 0.0));
 		}
 	}
@@ -516,8 +537,6 @@ initBallScene() {
 	followed.setColour(Vector3(1.0, 0.1, 0.1));
 	
 	followedTarget = getRandomCoords();
-	
-	cout << followedTarget.first << " " << followed.GetPosition()[0] << endl;
 }
 
 /*
