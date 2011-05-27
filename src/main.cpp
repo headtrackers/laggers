@@ -67,6 +67,7 @@ double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
 
+double normalspeed = 1.0;
 
 bool latencyChanged = false;
 bool run = true;
@@ -82,6 +83,7 @@ timeval endtime;
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
 std::list<Donut> checkpoints;
+std::pair<double, double> followedTarget;
 
 XnStatus nRetVal = XN_STATUS_OK;
 XnVSessionManager sessionManager;
@@ -356,6 +358,14 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 			}
 		}
 	}
+	else {
+		if(coordinate_distance(ball.GetPosition()[0], ball.GetPosition()[1], followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
+			testing = true;
+			getMeasurements();
+			
+			cout << "first" << endl;
+		}
+	}
 	
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
@@ -367,6 +377,22 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 		else {
 			stopMeasuring();
 			testing = false;
+		}
+	}
+	else if(testing) {
+		if(coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
+			followedTarget = getRandomCoords();
+			cout << "second" << endl;
+		}
+		else {
+			cout << "third" << endl;
+			
+			double dx = followedTarget.first - followed.GetPosition()[0];
+			double dy = followedTarget.second - followed.GetPosition()[1];
+			
+			cout << "BOO!" << endl;
+			
+			ball.SetPosition(Vector3(ball.GetPosition()[0] + dx * normalspeed, ball.GetPosition()[1] + dy * normalspeed, 0.0));
 		}
 	}
 }
@@ -398,8 +424,8 @@ read_checkpoints()
 	
 	for (int i=0; i < path_coordinates.size(); i++) {
 		Donut tmpBall;
-		tmpBall.SetPosition(Vector3(path_coordinates.at(i).first,
-					path_coordinates.at(i).second, 0.0f));
+		tmpBall.SetPosition(Vector3(-path_coordinates.at(i).first,
+					-path_coordinates.at(i).second, 0.0f));
 		tmpBall.setRadius(0.2f);
 		
 		checkpoints.push_back(tmpBall);
@@ -487,11 +513,13 @@ initBallScene() {
 	ball.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 	
 	pair<double, double> coords = getRandomCoords();
-	
-	cout << coords.first << " " << coords.second << endl;
-	
+		
 	followed.SetPosition(Vector3(coords.first, coords.second, 0.0));
 	followed.setColour(Vector3(1.0, 0.1, 0.1));
+	
+	followedTarget = getRandomCoords();
+	
+	cout << followedTarget.first << " " << followed.GetPosition()[0] << endl;
 }
 
 /*
@@ -672,9 +700,7 @@ display_func(void)
 	glTranslatef(0.0, 0.0, ZOFFSET);
 	glScalef(0.1, 0.1, 0.1);
 	ball.Render();
-	path.Render();
 	//glutSolidCube(3.0);
-	ball.Render();
 	
 	if(followline) {
 		path.Render();
