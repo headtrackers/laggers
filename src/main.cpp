@@ -67,7 +67,7 @@ double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
 
-double normalspeed = 1.0;
+double normalspeed = 0.01;
 
 bool latencyChanged = false;
 bool run = true;
@@ -382,17 +382,15 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 	else if(testing) {
 		if(coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
 			followedTarget = getRandomCoords();
-			cout << "second" << endl;
 		}
 		else {
-			cout << "third" << endl;
 			
-			double dx = followedTarget.first - followed.GetPosition()[0];
-			double dy = followedTarget.second - followed.GetPosition()[1];
+			double dx = (followedTarget.first - followed.GetPosition()[0]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
+			double dy = (followedTarget.second - followed.GetPosition()[1]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
 			
-			cout << "BOO!" << endl;
+			cout << dx << endl;
 			
-			ball.SetPosition(Vector3(ball.GetPosition()[0] + dx * normalspeed, ball.GetPosition()[1] + dy * normalspeed, 0.0));
+			followed.SetPosition(Vector3(followed.GetPosition()[0] + dx * normalspeed, followed.GetPosition()[1] + dy * normalspeed, 0.0));
 		}
 	}
 }
