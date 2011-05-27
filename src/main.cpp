@@ -1,9 +1,11 @@
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <queue>
 #include <sstream>
 #include <string>
@@ -25,7 +27,6 @@
 #include "Donut.h"
 #include "Path.h"
 #include"MathTerms.h"
-
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -58,7 +59,6 @@ int lastZ;
 int input_offset_x;
 int input_offset_y;
 int cntMeasurements = 0;
-
 
 double input_scale = 1.3;
 double max_path_block = 1.0;
@@ -108,10 +108,12 @@ static Donut followed;
 static Path path;
 
 static bool print = false;
+static bool followline = false;
 
 static float light_diffuse[] = { 0.8, 0.8, 0.8, 1.0 };
 static float light_ambient[] = { .2, .2, .2, 1.0 };
 static float light_position[] = { 1.0, 1.0, -4.0, 1.0 }; /* Infinite light location. */
+
 
 void
 ViewOrtho()
@@ -168,65 +170,87 @@ getMeasurements()
 	double Y = -mappedPos[1];
 
 	int index = 0;
-	
-	// Find closest vertex on path to the ball
-	for (int i = 0; i < path_coordinates.size(); i++) {
-		double length = sqrt(pow(X - path_coordinates.at(i).first, 2.0) +
-				pow(Y - path_coordinates.at(i).second, 2.0));
 
-		if (length < closestDist) {
-			closestDist = length;
-			index = i;
+	if (followline == true) {
+		// Find closest vertex on path to the ball
+		for (int i = 0; i < path_coordinates.size(); i++) {
+			double length = coordinate_distance(X, Y, path_coordinates.at(i).first,
+					path_coordinates.at(i).second);
+
+			if (length < closestDist) {
+				closestDist = length;
+				index = i;
+			}
 		}
-	}
 
-	closestPoint = path_coordinates.at(index);
-	
-	double prevLength = INT_MAX;
-	double nextLength = INT_MAX;
+		closestPoint = path_coordinates.at(index);
+		
+		double prevLength = INT_MAX;
+		double nextLength = INT_MAX;
 
-	// Find the closest neighbour point to the closest point on the path
-	if (index > 0) {
-		prevLength = sqrt(pow(X - path_coordinates.at(index-1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
-	}
+		// Find the closest neighbour point to the closest point on the path
+		if (index > 0) {
+			prevLength = coordinate_distance(X, Y, path_coordinates.at(index-1).first,
+					path_coordinates.at(index-1).second);
+		}
 
-	if (index < path_coordinates.size() - 1) {
-		nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index+1).second, 2.0));
-	}
+		if (index < path_coordinates.size() - 1) {
+			nextLength = coordinate_distance(X, Y, path_coordinates.at(index+1).first,
+					path_coordinates.at(index+1).second);
+		}
 
-	// Calculate the length of the line segment between the two found points
-	if (index > 0 && prevLength < nextLength) {
-		secondPoint = path_coordinates.at(index-1);
-	}
-	else if (index < path_coordinates.size() - 1) {
-		secondPoint = path_coordinates.at(index+1);
-	}
+		// Calculate the length of the line segment between the two found points
+		if (index > 0 && prevLength < nextLength) {
+			secondPoint = path_coordinates.at(index-1);
+		}
+		else if (index < path_coordinates.size() - 1) {
+			secondPoint = path_coordinates.at(index+1);
+		}
 
-	double segmentLength = sqrt(pow(closestPoint.first - secondPoint.first, 2.0) + pow(closestPoint.second - secondPoint.second, 2.0));
+		double segmentLength = coordinate_distance(closestPoint.first, closestPoint.second,
+				secondPoint.first, secondPoint.second);
 
-	double dx = closestPoint.first - secondPoint.first;
-	double dy = closestPoint.second - secondPoint.second;
+		double dx = closestPoint.first - secondPoint.first;
+		double dy = closestPoint.second - secondPoint.second;
 
-	// Calculate the normal of the line segment and the distance of the ball to a point on the line segment
-	pair<double, double> normal = make_pair(-dy, dx);
-	pair<double, double> point = make_pair(X - closestPoint.first, Y - closestPoint.second);
+		// Calculate the normal of the line segment and the distance of the ball to a point on the line segment
+		pair<double, double> normal = make_pair(-dy, dx);
+		pair<double, double> point = make_pair(X - closestPoint.first, Y - closestPoint.second);
 
-	double resultLength;
+		double resultLength;
 
-	// Calculates the distance of the ball to the line segment
-	if (segmentLength > 0) {
-		resultLength = (normal.first*point.first + normal.second*point.second) / segmentLength;
-	}
-	
-	if(resultLength < 0) {
-		resultLength *= -1;
-	}
+		// Calculates the distance of the ball to the line segment
+		if (segmentLength > 0) {
+			resultLength = (normal.first * point.first + normal.second * point.second) / segmentLength;
+		}
+		
+		if (resultLength < 0) {
+			resultLength *= -1;
+		}
 
-	cntMeasurements++;
-	sumDistance += resultLength;
-	
-	if(resultLength > maxDistance) {
-		maxDistance = resultLength;
+		cntMeasurements++;
+		sumDistance += resultLength;
+		
+		if (resultLength > maxDistance) {
+			maxDistance = resultLength;
+		}
+	} else {
+		/* We are following the ball */
+		double distance = 0.0;
+		double resultLength = 0.0;
+		Vector3 p1, p2;
+		
+		p1 = followed.GetPosition();
+		p2 = ball.GetPosition();
+
+		distance = coordinate_distance(p1[0], p1[1], p2[0], p2[1]);
+		if (distance > 0)
+			resultLength = ((p1[0] * p2[0]) + (p2[1] * p2[1])) / distance;
+
+		if (distance > maxDistance)
+			maxDistance = distance;
+
+		sumDistance += distance;
 	}
 }
 
@@ -279,7 +303,8 @@ post_display(void)
  */
 
 void
-XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie)
+XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
+		const XnPoint3D *pPosition, XnFloat fTime, void *pCookie)
 {
 	XnPoint3D curPoint;
 
@@ -306,19 +331,19 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 
 	float z;
 	glReadPixels(lastX, viewport[3] - lastY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
-	gluUnProject((float) lastX, (float) (viewport[3] - lastY), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
-	if (print)
-		printf(">>> %f\n", z);
-	
+	gluUnProject((float) lastX, (float) (viewport[3] - lastY), 1.0, modelview,
+			projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
+
 	if (measure) {
 		getMeasurements();
 	}
 	else if(followline) {
 		if(checkpoints.size() > 0) {
-			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+			if (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
+						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				startMeasuring();
 				testing = true;
-				
+
 				getMeasurements();
 			}
 		}
@@ -329,7 +354,8 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
-			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+			if (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
+						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				checkpoints.pop_front();
 			}
 		}
@@ -341,21 +367,22 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 }
 
 void
-XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt)
+XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint,
+		XnFloat fProgress, void* UserCxt)
 {
 	fprintf(stdout, "Session progress (%6.2f,%6.2f,%6.2f) - %6.2f [%s]\n",
 			ptFocusPoint.X, ptFocusPoint.Y, ptFocusPoint.Z, fProgress,  strFocus);
 }
 
 void
-XN_CALLBACK_TYPE SessionStart(const XnPoint3D& pFocus, void* UserCxt)
+XN_CALLBACK_TYPE SessionStart(const XnPoint3D& pFocus, void *UserCxt)
 {
 	std::cout << "Session started" << std::endl;
 	return;
 }
 
 void
-XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
+XN_CALLBACK_TYPE SessionEnd(void *UserCxt)
 {
 	return;
 }
@@ -368,7 +395,8 @@ read_checkpoints()
 	
 	for (int i=0; i < path_coordinates.size(); i++) {
 		Donut tmpBall;
-		tmpBall.SetPosition(Vector3(path_coordinates.at(i).first, path_coordinates.at(i).second, 0.0f));
+		tmpBall.SetPosition(Vector3(path_coordinates.at(i).first,
+					path_coordinates.at(i).second, 0.0f));
 		tmpBall.setRadius(0.2f);
 		
 		checkpoints.push_back(tmpBall);
@@ -380,32 +408,32 @@ readCoordinates(const string filename)
 {
 	double curvex, curvey;
 	ifstream input;
-	
+
 	path_coordinates.clear();
-	
+
 	input.open(filename.c_str(), ios::in);
-	
+
 	if (!input) {
 		cout << "Error opening file: " << filename << endl;
 		exit(1);
 	}
-	
+
 	while (input >> curvex >> curvey) {
 		if (path_coordinates.size() > 0) {
 			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)
 									+ pow(path_coordinates.back().second - curvey, 2.0));
-			
+
 			double prevx = path_coordinates.back().first;
 			double prevy = path_coordinates.back().second;
-			
+
 			double dirx = -1;
 			double diry = -1;
-			
+
 			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
 			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
-			
+
 			int steps = tmplength / max_path_block;
-			
+
 			if (steps > 0) {
 				for (int i = 0; i < steps; i++) {
 					prevx += stepx;
@@ -413,12 +441,11 @@ readCoordinates(const string filename)
 					path_coordinates.push_back(make_pair(prevx, prevy));
 				}
 			}
-			
+
 			if (prevx != curvex) {
 				path_coordinates.push_back(make_pair(curvex, curvey));
 			}
-		}
-		else {
+		} else {
 			path_coordinates.push_back(make_pair(curvex, curvey));
 		}
 	}
@@ -435,17 +462,14 @@ initCurveScene()
 	followline = true;
 	
 	const float width = 5.0;
-	
+
 	path = Path();
-	
+
 	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
 		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
 	}
-	
-	//	path.AddPoint(Point3(-width, 0.0, 0.0));
-	//	path.AddPoint(Point3(width, 0.0, 0.0));
-	
-	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
+
+	ball.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 }
 
 /*
@@ -473,7 +497,8 @@ initBallScene() {
  ----------------------------------------------------------------------
  */
 
-void update()
+void
+update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
 	sessionManager.Update(&context);
@@ -491,7 +516,6 @@ key_func(unsigned char key, int x, int y)
 		case '0':
 			camera.Reset();
 			break;
-
 			//camera movement cases
 		case '+':
 			camera.MoveZ(MOVE_AMT);
@@ -499,7 +523,6 @@ key_func(unsigned char key, int x, int y)
 		case '-':
 			camera.MoveZ(-MOVE_AMT);
 			break;
-
 			//camera rotation cases
 		case 'd':
 			camera.RotateY(ROT_AMT);
@@ -507,7 +530,6 @@ key_func(unsigned char key, int x, int y)
 		case 'g':
 			camera.RotateY(-ROT_AMT);
 			break;
-
 		case 'r':
 			camera.RotateX(-ROT_AMT);
 			break;
@@ -520,7 +542,6 @@ key_func(unsigned char key, int x, int y)
 		case 't':
 			camera.RotateZ(-ROT_AMT);
 			break;
-
 		case '1':
 			readCoordinates("../data/curve1.txt");
 			read_checkpoints();
@@ -552,7 +573,6 @@ special_key_func(int key, int x, int y)
 		case GLUT_KEY_DOWN:
 			camera.MoveY(MOVE_AMT);
 			break;
-
 		case GLUT_KEY_LEFT:
 			camera.MoveX(MOVE_AMT);
 			break;
@@ -575,13 +595,11 @@ mouse_func(int button, int st, int x, int y)
 		return;
 
 	switch (button) {
-
 	//mouse key down
 	case GLUT_LEFT_BUTTON:
 		printf("mouse: %d - %d ------------- window: %f - %f -%f\n", x, y, mappedPos[0], mappedPos[1], mappedPos[2]);
 		print = !print;
 		break;
-
 	}
 }
 
@@ -608,29 +626,6 @@ passive_func(int x, int y)
 
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
-	if (print)
-		printf(">>> %f\n", z);
-}
-
-
-/* Mark checkpoint visited. checkpoints is FIFO, thus first element will be removed. */
-void
-visit_checkpoint()
-{
-	if (checkpoints.size() < 1)
-		return;
-
-	fprintf(stdout, "Will remove: %.2f, %.2f\n", checkpoints.front().GetPosition()[0], checkpoints.front().GetPosition()[1]);
-	checkpoints.pop_front();
-}
-
-double
-checkpoint_coordinate_distance(pair<double, double> p1, pair<double, double> p2)
-{
-	double xdelta = p1.first - p2.first;
-	double ydelta = p1.second - p2.second;
-
-	return sqrt((xdelta * xdelta) + (ydelta * ydelta));
 }
 
 static void
@@ -657,8 +652,7 @@ reshape_func(int x, int y)
 static void
 timer_func(int amt)
 {
-	ring.SetPosition(Vector3(-mappedPos[0], -mappedPos[1], 0.0f));
-
+	ball.SetPosition(Vector3(-mappedPos[0], -mappedPos[1], 0.0f));
 	glutPostRedisplay();
 	glutTimerFunc(TIMER_FUNC_STEP, timer_func, 0);
 }
@@ -690,9 +684,7 @@ display_func(void)
 	}
 	
 	glPopMatrix();
-
 	ViewPerspective();
-
 	post_display();
 }
 
