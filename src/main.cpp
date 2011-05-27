@@ -11,6 +11,7 @@
 #include <vector>
 #include <climits>
 #include <list>
+#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,14 +66,18 @@ double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
 
+
+
 bool latencyChanged = false;
 bool run = true;
 bool measure = false;
 bool testing = false;
 
 clock_t latencytimer;
-clock_t testtimer;
 time_t prevtime = time(0);
+
+timeval starttime;
+timeval endtime;
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
@@ -224,7 +229,7 @@ startMeasuring()
 	sumDistance = 0.0;
 	avgDistance = 0.0;
 	maxDistance = 0.0;
-	testtimer = clock();
+	gettimeofday(&starttime, NULL);
 	
 	measure = true;
 }
@@ -232,12 +237,15 @@ startMeasuring()
 void
 stopMeasuring()
 {
+	timeval diff;
+	gettimeofday(&endtime, NULL);
+	timersub(&endtime, &starttime, &diff);
 	measure = false;
 	
 	avgDistance = sumDistance / cntMeasurements;
 	
 	cout << endl << "Latency: " << latency << endl;
-	cout << "Time: " << (double)testtimer / 100000 << " seconds" << endl;
+	cout << "Time: " << diff.tv_sec << "." << diff.tv_usec << " seconds" << endl;
 	cout << "Max Distance: " << maxDistance << endl;
 	cout << "Average Distance: " << avgDistance << endl;
 }
