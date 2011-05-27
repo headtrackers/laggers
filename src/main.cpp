@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <climits>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,60 +135,62 @@ changeLatency()
 	latencyChanged = true;
 }
 
-void getMeasurements() {
+void
+getMeasurements()
+{
 	double closestDist = INT_MAX;
 	pair<double, double> closestPoint;
 	pair<double, double> secondPoint;
 	double X = mappedPos[0];
 	double Y = mappedPos[1];
-	
+
 	int index = 0;
-	
+
 	for (int i = 0; i < path_coordinates.size(); i++) {
-		double length = sqrt(pow(X - path_coordinates.at(i).first, 2.0) + pow(Y - path_coordinates.at(i).second, 2.0));
-		
-		if(length < closestDist) {
+		double length = sqrt(pow(X - path_coordinates.at(i).first, 2.0) +
+				pow(Y - path_coordinates.at(i).second, 2.0));
+
+		if (length < closestDist) {
 			closestDist = length;
 			index = i;
 		}
 	}
-			
+
 	closestPoint = path_coordinates.at(index);
 	
 	double prevLength = INT_MAX;
 	double nextLength = INT_MAX;
-	
-	if(index > 0) {
+
+	if (index > 0) {
 		prevLength = sqrt(pow(X - path_coordinates.at(index-1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
 	}
-	
-	if(index < path_coordinates.size() - 1) {
+
+	if (index < path_coordinates.size() - 1) {
 		nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index+1).second, 2.0));
 	}
-	
-	if(index > 0 && prevLength < nextLength) {
+
+	if (index > 0 && prevLength < nextLength) {
 		secondPoint = path_coordinates.at(index-1);
 	}
-	else if(index < path_coordinates.size() - 1) {
+	else if (index < path_coordinates.size() - 1) {
 		secondPoint = path_coordinates.at(index+1);
 	}
-	
+
 	double segmentLength = sqrt(pow(closestPoint.first - secondPoint.first, 2.0) + pow(closestPoint.second - secondPoint.second, 2.0));
-	
+
 	double dx = closestPoint.first - secondPoint.first;
 	double dy = closestPoint.second - secondPoint.second;
-	
+
 	pair<double, double> normal = make_pair(-dy, dx);
 	pair<double, double> point = make_pair(X - closestPoint.first, Y - closestPoint.second);
-	
+
 	double resultLength;
-	
-	if(segmentLength > 0) {
+
+	if (segmentLength > 0) {
 		resultLength = (normal.first*point.first + normal.second*point.second) / segmentLength;
 	}
-	
+
 	cout << resultLength << endl;
-	
 }
 
 /*
@@ -359,7 +362,9 @@ special_key_func(int key, int x, int y)
 	}
 }
 
-static void mouse_func(int button, int st, int x, int y) {
+static void
+mouse_func(int button, int st, int x, int y)
+{
 	mx = x;
 	my = y;
 	
@@ -380,7 +385,9 @@ static void mouse_func(int button, int st, int x, int y) {
 	}
 }
 
-static void motion_func(int x, int y) {
+static void
+motion_func(int x, int y)
+{
 	mx = x;
 	my = y;
 	
@@ -488,11 +495,15 @@ display_func(void)
 	post_display();
 }
 
-void startMeasuring() {
+void
+startMeasuring()
+{
 	measure = true;
 }
 
-void stopMeasuring() {
+void
+stopMeasuring()
+{
 	measure = false;
 }
 
@@ -502,8 +513,6 @@ readCoordinates(const string filename)
 	double curvex, curvey;
 	ifstream input;
 	
-	path_coordinates.clear();
-
 	path_coordinates.clear();
 
 	input.open(filename.c_str(), ios::in);
