@@ -68,7 +68,6 @@ double sumDistance = 0.0;
 double epsilon = 1.0;
 
 
-bool followline = true;
 bool latencyChanged = false;
 bool run = true;
 bool measure = false;
@@ -103,7 +102,7 @@ static int mx, my;
 static double mappedPos[3];
 
 static Camera camera;
-static Donut ring;
+static Donut ball;
 static Donut followed;
 static Path path;
 
@@ -158,6 +157,15 @@ pair<double, double> getRandomCoords() {
 	double y = ((double) rand() / RAND_MAX) * 30.0 - 15.0;
 	
 	return make_pair(x, y);
+}
+
+double
+coordinate_distance(double x1, double y1, double x2, double y2)
+{
+	double xdelta = x1 - x2;
+	double ydelta = y1 - y2;
+
+	return sqrt((xdelta * xdelta) + (ydelta * ydelta));
 }
 
 void
@@ -348,9 +356,6 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 			}
 		}
 	}
-	else {
-		;
-	}
 	
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
@@ -367,9 +372,7 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 }
 
 void
-XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint,
-		XnFloat fProgress, void* UserCxt)
-{
+XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt) {
 	fprintf(stdout, "Session progress (%6.2f,%6.2f,%6.2f) - %6.2f [%s]\n",
 			ptFocusPoint.X, ptFocusPoint.Y, ptFocusPoint.Z, fProgress,  strFocus);
 }
@@ -481,7 +484,7 @@ initBallScene() {
 	
 	const float width = 5.0;
 	
-	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
+	ball.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 	
 	pair<double, double> coords = getRandomCoords();
 	
@@ -668,9 +671,10 @@ display_func(void)
 	glPushMatrix(); //render
 	glTranslatef(0.0, 0.0, ZOFFSET);
 	glScalef(0.1, 0.1, 0.1);
-	glColor3f(0.8f, 0.2f, 0.2f);
+	ball.Render();
+	path.Render();
 	//glutSolidCube(3.0);
-	ring.Render();
+	ball.Render();
 	
 	if(followline) {
 		path.Render();
