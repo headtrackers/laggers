@@ -54,10 +54,14 @@ int lastY;
 int lastZ;
 int input_offset_x;
 int input_offset_y;
+int cntMeasurements = 0;
 
 
-double input_scale = 1.5;
+double input_scale = 1.3;
 double max_path_block = 0.5;
+double maxDistance = 0.0;
+double avgDistance = 0.0;
+double sumDistance = 0.0;
 
 bool latencyChanged = false;
 bool run = true;
@@ -189,8 +193,17 @@ getMeasurements()
 	if (segmentLength > 0) {
 		resultLength = (normal.first*point.first + normal.second*point.second) / segmentLength;
 	}
+	
+	if(resultLength < 0) {
+		resultLength *= -1;
+	}
 
-	cout << resultLength << endl;
+	cntMeasurements++;
+	sumDistance += resultLength;
+	
+	if(resultLength > maxDistance) {
+		maxDistance = resultLength;
+	}
 }
 
 /*
@@ -505,6 +518,11 @@ void
 stopMeasuring()
 {
 	measure = false;
+	
+	avgDistance = sumDistance / cntMeasurements;
+	
+	cout << endl << "Max Distance: " << maxDistance << endl;
+	cout << "Average Distance: " << avgDistance << endl;
 }
 
 void
@@ -632,8 +650,6 @@ main(int argc, char *argv[])
 	readCoordinates("../data/curve1.txt");
 	read_checkpoints();
 	initScene1();
-	
-	startMeasuring();
 	
 	input_offset_x = win_x / 2;
 	input_offset_y = win_y / 2;
