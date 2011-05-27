@@ -445,7 +445,7 @@ readCoordinates(const string filename)
 
 	while (input >> curvex >> curvey) {
 		if (path_coordinates.size() > 0) {
-			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)\
+			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)
 					+ pow(path_coordinates.back().second - curvey, 2.0));
 			
 			double prevx = path_coordinates.back().first;
