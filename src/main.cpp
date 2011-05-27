@@ -1,3 +1,5 @@
+#include <sys/time.h>
+
 #include <climits>
 #include <cmath>
 #include <cstdio>
@@ -13,7 +15,6 @@
 #include <vector>
 #include <climits>
 #include <list>
-#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,12 @@ return rc; \
 
 using namespace std;
 
+/* Size of the windows */
+#define win_x 800
+#define win_y 600
+#define COORDSIZE_X 40
+#define COORDSIZE_Y 30
+
 int cnt;
 int latency;
 int lastX;
@@ -66,7 +73,6 @@ double maxDistance = 0.0;
 double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
-
 
 bool latencyChanged = false;
 bool run = true;
@@ -97,7 +103,6 @@ static int viewport[4];
 static double modelview[16];
 static double projection[16];
 
-static int win_x, win_y;
 static int mx, my;
 static double mappedPos[3];
 
@@ -148,14 +153,14 @@ changeLatency()
 	coordinateQueue = std::queue<XnPoint3D>();
 	latencytimer = clock();
 	latencyChanged = true;
-	
+
 	cout << "Latency: " << latency << endl;
 }
 
 pair<double, double> getRandomCoords() {	
-	double x = ((double) rand() / RAND_MAX) * 40.0 - 20.0;
-	double y = ((double) rand() / RAND_MAX) * 30.0 - 15.0;
-	
+	double x = ((double) rand() / RAND_MAX) * COORDSIZE_X - 20;
+	double y = ((double) rand() / RAND_MAX) * COORDSIZE_Y - 15;
+
 	return make_pair(x, y);
 }
 
@@ -192,7 +197,7 @@ getMeasurements()
 		}
 
 		closestPoint = path_coordinates.at(index);
-		
+
 		double prevLength = INT_MAX;
 		double nextLength = INT_MAX;
 
@@ -270,7 +275,7 @@ startMeasuring()
 	avgDistance = 0.0;
 	maxDistance = 0.0;
 	gettimeofday(&starttime, NULL);
-	
+
 	measure = true;
 }
 
@@ -281,9 +286,9 @@ stopMeasuring()
 	gettimeofday(&endtime, NULL);
 	timersub(&endtime, &starttime, &diff);
 	measure = false;
-	
+
 	avgDistance = sumDistance / cntMeasurements;
-	
+
 	cout << endl << "Latency: " << latency << endl;
 	cout << "Time: " << diff.tv_sec << "." << diff.tv_usec << " seconds" << endl;
 	cout << "Max Distance: " << maxDistance << endl;
@@ -356,7 +361,7 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 			}
 		}
 	}
-	
+
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
 			if (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
@@ -372,13 +377,14 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 }
 
 void
-XN_CALLBACK_TYPE SessionProgress(const XnChar* strFocus, const XnPoint3D& ptFocusPoint, XnFloat fProgress, void* UserCxt) {
+XN_CALLBACK_TYPE SessionProgress(const XnChar *strFocus, const XnPoint3D &ptFocusPoint,
+		XnFloat fProgress, void *UserCxt) {
 	fprintf(stdout, "Session progress (%6.2f,%6.2f,%6.2f) - %6.2f [%s]\n",
 			ptFocusPoint.X, ptFocusPoint.Y, ptFocusPoint.Z, fProgress,  strFocus);
 }
 
 void
-XN_CALLBACK_TYPE SessionStart(const XnPoint3D& pFocus, void *UserCxt)
+XN_CALLBACK_TYPE SessionStart(const XnPoint3D &pFocus, void *UserCxt)
 {
 	std::cout << "Session started" << std::endl;
 	return;
@@ -395,13 +401,13 @@ void
 read_checkpoints()
 {
 	checkpoints.clear();
-	
+
 	for (int i=0; i < path_coordinates.size(); i++) {
 		Donut tmpBall;
 		tmpBall.SetPosition(Vector3(path_coordinates.at(i).first,
 					path_coordinates.at(i).second, 0.0f));
 		tmpBall.setRadius(0.2f);
-		
+
 		checkpoints.push_back(tmpBall);
 	}
 }
@@ -468,7 +474,8 @@ initCurveScene()
 
 	path = Path();
 
-	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
+	for (vector<pair<double, double> >::iterator i = path_coordinates.begin();
+			i != path_coordinates.end(); i++) {
 		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
 	}
 
@@ -481,15 +488,14 @@ initCurveScene()
 void
 initBallScene() {
 	followline = false;
-	
 	const float width = 5.0;
-	
+
 	ball.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
-	
+
 	pair<double, double> coords = getRandomCoords();
-	
+
 	cout << coords.first << " " << coords.second << endl;
-	
+
 	followed.SetPosition(Vector3(coords.first, coords.second, 0.0));
 	followed.setColour(Vector3(1.0, 0.1, 0.1));
 }
@@ -600,7 +606,7 @@ mouse_func(int button, int st, int x, int y)
 	switch (button) {
 	//mouse key down
 	case GLUT_LEFT_BUTTON:
-		printf("mouse: %d - %d ------------- window: %f - %f -%f\n", x, y, mappedPos[0], mappedPos[1], mappedPos[2]);
+		//printf("mouse: %d - %d ------------- window: %f - %f -%f\n", x, y, mappedPos[0], mappedPos[1], mappedPos[2]);
 		print = !print;
 		break;
 	}
@@ -628,7 +634,8 @@ passive_func(int x, int y)
 	lastY = my;
 
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
-	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
+	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport,
+			&mappedPos[0], &mappedPos[1], &mappedPos[2]);
 }
 
 static void
@@ -743,8 +750,6 @@ main(int argc, char *argv[])
 	dump_frames = 0;
 	frame_number = 0;
 
-	win_x = 800;
-	win_y = 600;
 	init();
 
 	readCoordinates("../data/curve1.txt");
