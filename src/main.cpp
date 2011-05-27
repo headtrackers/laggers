@@ -60,6 +60,8 @@ double max_path_block = 0.5;
 
 bool latencyChanged = false;
 bool run = true;
+bool measure = false;
+
 clock_t latencytimer;
 time_t prevtime = time(0);
 
@@ -132,6 +134,62 @@ changeLatency()
 	latencyChanged = true;
 }
 
+void getMeasurements() {
+	double closestDist = INT_MAX;
+	pair<double, double> closestPoint;
+	pair<double, double> secondPoint;
+	double X = mappedPos[0];
+	double Y = mappedPos[1];
+	
+	int index = 0;
+	
+	for (int i = 0; i < path_coordinates.size(); i++) {
+		double length = sqrt(pow(X - path_coordinates.at(i).first, 2.0) + pow(Y - path_coordinates.at(i).second, 2.0));
+		
+		if(length < closestDist) {
+			closestDist = length;
+			index = i;
+		}
+	}
+			
+	closestPoint = path_coordinates.at(index);
+	
+	double prevLength = INT_MAX;
+	double nextLength = INT_MAX;
+	
+	if(index > 0) {
+		prevLength = sqrt(pow(X - path_coordinates.at(index-1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
+	}
+	
+	if(index < path_coordinates.size() - 1) {
+		nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index+1).second, 2.0));
+	}
+	
+	if(index > 0 && prevLength < nextLength) {
+		secondPoint = path_coordinates.at(index-1);
+	}
+	else if(index < path_coordinates.size() - 1) {
+		secondPoint = path_coordinates.at(index+1);
+	}
+	
+	double segmentLength = sqrt(pow(closestPoint.first - secondPoint.first, 2.0) + pow(closestPoint.second - secondPoint.second, 2.0));
+	
+	double dx = closestPoint.first - secondPoint.first;
+	double dy = closestPoint.second - secondPoint.second;
+	
+	pair<double, double> normal = make_pair(-dy, dx);
+	pair<double, double> point = make_pair(X - closestPoint.first, Y - closestPoint.second);
+	
+	double resultLength;
+	
+	if(segmentLength > 0) {
+		resultLength = (normal.first*point.first + normal.second*point.second) / segmentLength;
+	}
+	
+	cout << resultLength << endl;
+	
+}
+
 /*
  ----------------------------------------------------------------------
  OpenGL specific drawing routines
@@ -184,8 +242,10 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	if (print)
 		printf(">>> %f\n", z);
 
-	std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
-//	fprintf(stdout, "%ld: X: %-15f Y: %-15f Z: %-15f\n", tmptime, pPosition->X, pPosition->Y, pPosition->Z);
+	//std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
+	if (measure) {
+		getMeasurements();
+	}
 }
 
 void
@@ -428,11 +488,21 @@ display_func(void)
 	post_display();
 }
 
+void startMeasuring() {
+	measure = true;
+}
+
+void stopMeasuring() {
+	measure = false;
+}
+
 void
 readCoordinates(const string filename)
 {
 	double curvex, curvey;
 	ifstream input;
+	
+	path_coordinates.clear();
 
 	path_coordinates.clear();
 
@@ -464,11 +534,10 @@ readCoordinates(const string filename)
 					prevx += stepx;
 					prevy += stepy;
 					path_coordinates.push_back(make_pair(prevx, prevy));
-					//fprintf(stdout, "-- 2 --> %.2f, %.2f\n", prevx, prevy);
 				}
 			}
 
-			if (stepx != curvex) {
+			if (prevx != curvex) {
 				path_coordinates.push_back(make_pair(curvex, curvey));
 			}
 		}
@@ -555,6 +624,8 @@ main(int argc, char *argv[])
 	read_checkpoints();
 	initScene1();
 	
+	startMeasuring();
+	
 	input_offset_x = win_x / 2;
 	input_offset_y = win_y / 2;
 
@@ -592,6 +663,11 @@ main(int argc, char *argv[])
 		nRetVal = context.StartGeneratingAll();
 		CHECK_RC(nRetVal, "Start generating data");
 		glutIdleFunc(update);
+	}
+	else {
+		glutMouseFunc(mouse_func);
+		glutMotionFunc(motion_func);
+		glutPassiveMotionFunc(passive_func);
 	}
 
 	glutKeyboardFunc(key_func);
