@@ -74,6 +74,7 @@ double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
 double normalspeed = 1.0;
+double speed = 0.0;
 
 bool latencyChanged = false;
 bool run = true;
@@ -582,7 +583,16 @@ key_func(unsigned char key, int x, int y)
 			read_checkpoints();
 			initCurveScene();
 			break;
+		case '4':
+			speed = slowspeed;
+			initBallScene();
+			break;
 		case '5':
+			speed = normalspeed;
+			initBallScene();
+			break;
+		case '6':
+			speed = fastspeed;
 			initBallScene();
 			break;
 		case 's':
