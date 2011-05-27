@@ -7,8 +7,9 @@ INCLUDES = -I /usr/include/ni\
 		   -I /usr/include/libusb-1.0\
 		   -I /usr/local/include/libfreenect
 LIBS = -L /usr/local/lib -lfreenect -lOpenNI -lglut\
-	   -lXnVNite -lGLU -lfreenect -lusb1-0 -lusb
-FILES = `ls *.cpp *.c` 
+	   -lXnVNite -lGLU -lfreenect
+FILES = `ls *.cpp`
+#FILES = `ls *.cpp *.c`
 
 all:
 	${CC} $(CFLAGS) $(INCLUDES) $(LIBS) $(FILES) -o laggers

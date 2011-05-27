@@ -10,7 +10,6 @@
 
 SpaceObject::SpaceObject() {
 	// TODO Auto-generated constructor stub
-
 }
 
 SpaceObject::~SpaceObject() {
@@ -18,7 +17,6 @@ SpaceObject::~SpaceObject() {
 }
 
 void Render(){
-
 }
 
 void SpaceObject::NormalizeVectors(){
