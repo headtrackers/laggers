@@ -107,7 +107,7 @@ freenect_get_mks_accel(freenect_raw_tilt_state *state, double* x, double* y, dou
 {
 	//the documentation for the accelerometer (http://www.kionix.com/Product%20Sheets/KXSD9%20Product%20Brief.pdf)
 	//states there are 819 counts/g
-	*x = (double)state->accelerometer_x/FREENECT_COUNTS_PER_G*GRAVITY;
-	*y = (double)state->accelerometer_y/FREENECT_COUNTS_PER_G*GRAVITY;
-	*z = (double)state->accelerometer_z/FREENECT_COUNTS_PER_G*GRAVITY;
+	*x = (double)state->accelerometer_x / FREENECT_COUNTS_PER_G * GRAVITY;
+	*y = (double)state->accelerometer_y / FREENECT_COUNTS_PER_G * GRAVITY;
+	*z = (double)state->accelerometer_z / FREENECT_COUNTS_PER_G * GRAVITY;
 }

@@ -1,3 +1,4 @@
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -9,7 +10,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <climits>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,7 +22,6 @@
 #include "Cylinder.h"
 #include "Donut.h"
 #include "Path.h"
-
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -242,8 +241,8 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	float z;
 	glReadPixels(lastX, viewport[3] - lastY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	gluUnProject((float) lastX, (float) (viewport[3] - lastY), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
-	if (print)
-		printf(">>> %f\n", z);
+	//if (print)
+	//	printf(">>> %f\n", z);
 
 	//std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
 	if (measure) {
@@ -408,8 +407,8 @@ passive_func(int x, int y)
 
 	glReadPixels(x, viewport[3] - y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
 	gluUnProject((float) x, (float) (viewport[3] - y), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
-	if (print)
-		printf(">>> %f\n", z);
+	//if (print)
+	//	printf(">>> %f\n", z);
 }
 
 /* Will read path_coordinates to checkpoints */
