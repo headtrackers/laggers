@@ -58,7 +58,7 @@ void Donut::Render() {
 	glColor3f(0.8, 0.8, 0.2);
 	glPushAttrib(GL_NORMALIZE);
 	glEnable(GL_NORMALIZE);
-	glutSolidTorus(inRadius, outRadius, 20, 20);
+	glutSolidSphere(inRadius, 20, 20);
 	glDisable(GL_NORMALIZE);
 	glPopAttrib();
 	glPopMatrix(); //5
@@ -67,4 +67,8 @@ void Donut::Render() {
 	glPopMatrix(); //2
 	glPopMatrix(); //1
 #endif
+}
+
+void Donut::setRadius(float radius) {
+	inRadius = radius;
 }
