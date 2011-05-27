@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 #include <climits>
+#include <list>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,21 +59,24 @@ int cntMeasurements = 0;
 
 
 double input_scale = 1.3;
-double max_path_block = 0.5;
+double max_path_block = 1.0;
 double maxDistance = 0.0;
 double avgDistance = 0.0;
 double sumDistance = 0.0;
+double epsilon = 1.0;
 
 bool latencyChanged = false;
 bool run = true;
 bool measure = false;
+bool testing = false;
 
 clock_t latencytimer;
+clock_t testtimer;
 time_t prevtime = time(0);
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
-std::queue<pair<double, double> > checkpoints;
+std::list<Donut> checkpoints;
 
 XnStatus nRetVal = XN_STATUS_OK;
 XnVSessionManager sessionManager;
@@ -137,6 +141,8 @@ changeLatency()
 	coordinateQueue = std::queue<XnPoint3D>();
 	latencytimer = clock();
 	latencyChanged = true;
+	
+	cout << "Latency: " << latency << endl;
 }
 
 void
@@ -145,11 +151,12 @@ getMeasurements()
 	double closestDist = INT_MAX;
 	pair<double, double> closestPoint;
 	pair<double, double> secondPoint;
-	double X = mappedPos[0];
-	double Y = mappedPos[1];
+	double X = -mappedPos[0];
+	double Y = -mappedPos[1];
 
 	int index = 0;
-
+	
+	// Find closest vertex on path to the ball
 	for (int i = 0; i < path_coordinates.size(); i++) {
 		double length = sqrt(pow(X - path_coordinates.at(i).first, 2.0) +
 				pow(Y - path_coordinates.at(i).second, 2.0));
@@ -165,6 +172,7 @@ getMeasurements()
 	double prevLength = INT_MAX;
 	double nextLength = INT_MAX;
 
+	// Find the closest neighbour point to the closest point on the path
 	if (index > 0) {
 		prevLength = sqrt(pow(X - path_coordinates.at(index-1).first, 2.0) + pow(Y - path_coordinates.at(index-1).second, 2.0));
 	}
@@ -173,6 +181,7 @@ getMeasurements()
 		nextLength = sqrt(pow(X - path_coordinates.at(index+1).first, 2.0) + pow(Y - path_coordinates.at(index+1).second, 2.0));
 	}
 
+	// Calculate the length of the line segment between the two found points
 	if (index > 0 && prevLength < nextLength) {
 		secondPoint = path_coordinates.at(index-1);
 	}
@@ -185,11 +194,13 @@ getMeasurements()
 	double dx = closestPoint.first - secondPoint.first;
 	double dy = closestPoint.second - secondPoint.second;
 
+	// Calculate the normal of the line segment and the distance of the ball to a point on the line segment
 	pair<double, double> normal = make_pair(-dy, dx);
 	pair<double, double> point = make_pair(X - closestPoint.first, Y - closestPoint.second);
 
 	double resultLength;
 
+	// Calculates the distance of the ball to the line segment
 	if (segmentLength > 0) {
 		resultLength = (normal.first*point.first + normal.second*point.second) / segmentLength;
 	}
@@ -204,6 +215,31 @@ getMeasurements()
 	if(resultLength > maxDistance) {
 		maxDistance = resultLength;
 	}
+}
+
+void
+startMeasuring()
+{
+	cntMeasurements = 0;
+	sumDistance = 0.0;
+	avgDistance = 0.0;
+	maxDistance = 0.0;
+	testtimer = clock();
+	
+	measure = true;
+}
+
+void
+stopMeasuring()
+{
+	measure = false;
+	
+	avgDistance = sumDistance / cntMeasurements;
+	
+	cout << endl << "Latency: " << latency << endl;
+	cout << "Time: " << (double)testtimer / 100000 << " seconds" << endl;
+	cout << "Max Distance: " << maxDistance << endl;
+	cout << "Average Distance: " << avgDistance << endl;
 }
 
 /*
@@ -244,6 +280,7 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 		latencyChanged = false;
 	}
 
+	// Update the position only when latency is not "being added". Otherwise just read inputs to queue.
 	if (latencyChanged == false) {
 		lastX = ((-1) * coordinateQueue.front().X / input_scale) + input_offset_x;
 		lastY = ((-1) * coordinateQueue.front().Y / input_scale) + input_offset_y;
@@ -257,10 +294,31 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user, const 
 	gluUnProject((float) lastX, (float) (viewport[3] - lastY), 1.0, modelview, projection, viewport, &mappedPos[0], &mappedPos[1], &mappedPos[2]);
 	if (print)
 		printf(">>> %f\n", z);
-
-	//std::cout << "X: " << lastX << "\t Y: " << lastY << "\t Z: " << lastZ <<"\t Latency: " << latency << "ms" << std::endl;
+	
 	if (measure) {
 		getMeasurements();
+	}
+	else {
+		if(checkpoints.size() > 0) {
+			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+				startMeasuring();
+				testing = true;
+				
+				getMeasurements();
+			}
+		}
+	}
+	
+	if(testing) {
+		if (checkpoints.size() > 0) {
+			if(sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) + pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+				checkpoints.pop_front();
+			}
+		}
+		else {
+			stopMeasuring();
+			testing = false;
+		}
 	}
 }
 
@@ -282,6 +340,92 @@ void
 XN_CALLBACK_TYPE SessionEnd(void* UserCxt)
 {
 	return;
+}
+
+/* Will read path_coordinates to checkpoints */
+void
+read_checkpoints()
+{
+	checkpoints.clear();
+	
+	for (int i=0; i < path_coordinates.size(); i++) {
+		Donut tmpBall;
+		tmpBall.SetPosition(Vector3(path_coordinates.at(i).first, path_coordinates.at(i).second, 0.0f));
+		tmpBall.setRadius(0.2f);
+		
+		checkpoints.push_back(tmpBall);
+	}
+}
+
+void
+readCoordinates(const string filename)
+{
+	double curvex, curvey;
+	ifstream input;
+	
+	path_coordinates.clear();
+	
+	input.open(filename.c_str(), ios::in);
+	
+	if (!input) {
+		cout << "Error opening file: " << filename << endl;
+		exit(1);
+	}
+	
+	while (input >> curvex >> curvey) {
+		if (path_coordinates.size() > 0) {
+			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)
+									+ pow(path_coordinates.back().second - curvey, 2.0));
+			
+			double prevx = path_coordinates.back().first;
+			double prevy = path_coordinates.back().second;
+			
+			double dirx = -1;
+			double diry = -1;
+			
+			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
+			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
+			
+			int steps = tmplength / max_path_block;
+			
+			if (steps > 0) {
+				for (int i = 0; i < steps; i++) {
+					prevx += stepx;
+					prevy += stepy;
+					path_coordinates.push_back(make_pair(prevx, prevy));
+				}
+			}
+			
+			if (prevx != curvex) {
+				path_coordinates.push_back(make_pair(curvex, curvey));
+			}
+		}
+		else {
+			path_coordinates.push_back(make_pair(curvex, curvey));
+		}
+	}
+	
+	input.close();
+}
+
+/*
+ * Scene 1, straight line and the ring
+ * */
+void
+initScene1()
+{
+	const float width = 5.0;
+	
+	path = Path();
+	
+	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
+		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
+	}
+	
+	//	path.AddPoint(Point3(-width, 0.0, 0.0));
+	//	path.AddPoint(Point3(width, 0.0, 0.0));
+	
+	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 }
 
 /*
@@ -339,14 +483,17 @@ key_func(unsigned char key, int x, int y)
 			break;
 
 		case '1':
+			readCoordinates("../data/curve1.txt");
+			read_checkpoints();
+			initScene1();
 			break;
 		case '3':
 			break;
-		case 'a':
+		case 's':
 			latency += 25;
 			changeLatency();
 			break;
-		case 's':
+		case 'a':
 			if(latency > 0) {
 				latency -= 25;
 			}
@@ -425,16 +572,6 @@ passive_func(int x, int y)
 		printf(">>> %f\n", z);
 }
 
-/* Will read path_coordinates to checkpoints */
-void
-read_checkpoints()
-{
-	while (checkpoints.size() > 1)
-		checkpoints.pop();
-
-	for (int i=0; i < path_coordinates.size(); i++)
-		checkpoints.push(path_coordinates.at(i));
-}
 
 /* Mark checkpoint visited. checkpoints is FIFO, thus first element will be removed. */
 void
@@ -443,8 +580,8 @@ visit_checkpoint()
 	if (checkpoints.size() < 1)
 		return;
 
-	fprintf(stdout, "Will remove: %.2f, %.2f\n", checkpoints.front().first, checkpoints.front().second);
-	checkpoints.pop();
+	fprintf(stdout, "Will remove: %.2f, %.2f\n", checkpoints.front().GetPosition()[0], checkpoints.front().GetPosition()[1]);
+	checkpoints.pop_front();
 }
 
 double
@@ -501,97 +638,16 @@ display_func(void)
 	//glutSolidCube(3.0);
 	ring.Render();
 	path.Render();
+	
+	for (list<Donut>::iterator i = checkpoints.begin(); i != checkpoints.end(); i++) {
+		(*i).Render();
+	}
+	
 	glPopMatrix();
 
 	ViewPerspective();
 
 	post_display();
-}
-
-void
-startMeasuring()
-{
-	measure = true;
-}
-
-void
-stopMeasuring()
-{
-	measure = false;
-	
-	avgDistance = sumDistance / cntMeasurements;
-	
-	cout << endl << "Max Distance: " << maxDistance << endl;
-	cout << "Average Distance: " << avgDistance << endl;
-}
-
-void
-readCoordinates(const string filename)
-{
-	double curvex, curvey;
-	ifstream input;
-	
-	path_coordinates.clear();
-
-	input.open(filename.c_str(), ios::in);
-
-	if (!input) {
-		cout << "Error opening file: " << filename << endl;
-		exit(1);
-	}
-
-	while (input >> curvex >> curvey) {
-		if (path_coordinates.size() > 0) {
-			double tmplength = sqrt(pow(path_coordinates.back().first - curvex, 2.0)
-					+ pow(path_coordinates.back().second - curvey, 2.0));
-			
-			double prevx = path_coordinates.back().first;
-			double prevy = path_coordinates.back().second;
-
-			double dirx = -1;
-			double diry = -1;
-
-			double stepx = (path_coordinates.back().first - curvex) / tmplength * max_path_block * dirx;
-			double stepy = (path_coordinates.back().second - curvey)  / tmplength * max_path_block * diry;
-
-			int steps = tmplength / max_path_block;
-
-			if (steps > 0) {
-				for (int i = 0; i < steps; i++) {
-					prevx += stepx;
-					prevy += stepy;
-					path_coordinates.push_back(make_pair(prevx, prevy));
-				}
-			}
-
-			if (prevx != curvex) {
-				path_coordinates.push_back(make_pair(curvex, curvey));
-			}
-		}
-		else {
-			path_coordinates.push_back(make_pair(curvex, curvey));
-		}
-	}
-
-	input.close();
-}
-
-/*
- * Scene 1, straight line and the ring
- * */
-void
-initScene1()
-{
-	const float width = 5.0;
-
-	for (vector<pair<double, double> >::iterator i = path_coordinates.begin(); i != path_coordinates.end(); i++) {
-		path.AddPoint(Point3((*i).first, (*i).second, 0.0));
-	}
-
-//	path.AddPoint(Point3(-width, 0.0, 0.0));
-//	path.AddPoint(Point3(width, 0.0, 0.0));
-
-	ring.SetPosition(Vector3(width + 1.0f, 0.0f, 0.0f));
 }
 
 /*

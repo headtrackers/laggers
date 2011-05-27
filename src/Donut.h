@@ -16,6 +16,7 @@ public:
 	virtual ~Donut();
 
 	void Render();
+	void setRadius(float radius);
 private:
 	float inRadius;
 	float outRadius;

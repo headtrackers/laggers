@@ -68,3 +68,7 @@ void Donut::Render() {
 	glPopMatrix(); //1
 #endif
 }
+
+void Donut::setRadius(float radius) {
+	inRadius = radius;
+}
