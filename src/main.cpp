@@ -27,7 +27,7 @@
 #include "Cylinder.h"
 #include "Donut.h"
 #include "Path.h"
-#include"MathTerms.h"
+#include "MathTerms.h"
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -637,12 +637,12 @@ key_func(unsigned char key, int x, int y)
 			initBallScene();
 			break;
 		case 's':
-			latency += 25;
+			latency += 50;
 			changeLatency();
 			break;
 		case 'a':
 			if(latency > 0) {
-				latency -= 25;
+				latency -= 50;
 			}
 			changeLatency();
 			break;
@@ -817,7 +817,6 @@ main(int argc, char *argv[])
 		N = 64;
 		dt = 0.5f;
 		d = 5.f;
-		fprintf(stderr, "Using defaults : N=%d dt=%g d=%g\n", N, dt, d);
 	} else {
 		N = atoi(argv[1]);
 		dt = atof(argv[2]);

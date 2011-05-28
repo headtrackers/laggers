@@ -1,20 +1,15 @@
 CC=clang
 MV=mv
-CLAGS = `pkg-config --cflags opencv`
 INCLUDES = -I /usr/include/ni\
 		   -I /usr/include/nite\
 		   -I /usr/local/include/libfreenect\
-		   -I /usr/include/libusb-1.0\
 		   -I /usr/local/include/libfreenect
 LIBS = -L /usr/local/lib -lfreenect -lOpenNI -lglut\
 	   -lXnVNite -lGLU -lfreenect
 FILES = `ls *.cpp`
-#FILES = `ls *.cpp *.c`
 
 all:
-	${CC} $(CFLAGS) $(INCLUDES) $(LIBS) $(FILES) -o laggers
-	#${CC} *.cpp -o laggers -I /usr/include/ni -I /usr/include/nite\
-	#	-lOpenNI -lglut -lXnVNite -lGLU -lfreenect
+	${CC} $(INCLUDES) $(LIBS) $(FILES) -o laggers
 	${MV} laggers ../bin/
 
 clean:
