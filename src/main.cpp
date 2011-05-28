@@ -247,7 +247,7 @@ getMeasurements()
 		if (segmentLength > 0) {
 			resultLength = (normal.first * point.first + normal.second * point.second) / segmentLength;
 		}
-		
+
 		if (resultLength < 0) {
 			resultLength *= -1;
 		}

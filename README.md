@@ -1,5 +1,10 @@
 ###This is a school project for the Interactive Virtual Environments 
 
+#Introduction
+This program is used to test how artificial latency affects for the
+
+virtual environment experience.
+
 #Getting started
 ##Depedencies
 * OpenNI (https://github.com/OpenNI/OpenNI/tree/unstable)
