@@ -190,8 +190,8 @@ getMeasurements()
 	double closestDist = INT_MAX;
 	pair<double, double> closestPoint;
 	pair<double, double> secondPoint;
-	double X = -mappedPos[0];
-	double Y = -mappedPos[1];
+	double X = mappedPos[0];
+	double Y = mappedPos[1];
 
 	int index = 0;
 
@@ -254,7 +254,7 @@ getMeasurements()
 
 		cntMeasurements++;
 		sumDistance += resultLength;
-		
+				
 		if (resultLength > maxDistance) {
 			maxDistance = resultLength;
 		}
