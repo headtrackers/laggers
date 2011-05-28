@@ -160,7 +160,9 @@ changeLatency()
 	cout << "Latency: " << latency << endl;
 }
 
-pair<double, double> getRandomCoords() {	
+pair<double, double>
+getRandomCoords()
+{
 	double x = ((double) rand() / RAND_MAX) * COORDSIZE_X - 20;
 	double y = ((double) rand() / RAND_MAX) * COORDSIZE_Y - 15;
 
@@ -355,11 +357,10 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 	}
 	else if(followline) {
 		if(checkpoints.size() > 0) {
-			if (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
-						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+			if (coordinate_distance(-mappedPos[0], -mappedPos[1], checkpoints.front().GetPosition()[0],
+						checkpoints.front().GetPosition()[1]) < epsilon) {
 				startMeasuring();
 				testing = true;
-
 				getMeasurements();
 			}
 		}
@@ -375,8 +376,8 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 	
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
-			if (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
-						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
+			if (coordinate_distance(-mappedPos[0], -mappedPos[1], checkpoints.front().GetPosition()[0],
+						checkpoints.front().GetPosition()[1]) < epsilon) {
 				checkpoints.pop_front();
 			}
 		}
