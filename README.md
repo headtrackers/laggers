@@ -1,4 +1,9 @@
-###This is a school project for the Interactive Virtual Environments 
+###This is a school project for the Interactive Virtual Environments course
+
+#Introduction
+This program is used to test how artificial latency affects for the
+
+virtual environment experience.
 
 #Getting started
 ##Depedencies
