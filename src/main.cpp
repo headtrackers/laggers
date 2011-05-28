@@ -66,6 +66,7 @@ int lastZ;
 int input_offset_x;
 int input_offset_y;
 int cntMeasurements = 0;
+int followtime = 15;
 
 double input_scale = 1.3;
 double max_path_block = 1.0;
@@ -73,8 +74,12 @@ double maxDistance = 0.0;
 double avgDistance = 0.0;
 double sumDistance = 0.0;
 double epsilon = 1.0;
-double normalspeed = 1.0;
+double fastspeed = 0.3;
+double normalspeed = 0.2;
+double slowspeed = 0.1;
 double speed = 0.0;
+
+string ballspeed;
 
 bool latencyChanged = false;
 bool run = true;
@@ -86,6 +91,7 @@ time_t prevtime = time(0);
 
 timeval starttime;
 timeval endtime;
+timeval sTime, eTime;
 
 std::queue<XnPoint3D> coordinateQueue;
 std::vector<pair<double, double> > path_coordinates;
@@ -258,6 +264,8 @@ getMeasurements()
 		double resultLength = 0.0;
 		Vector3 p1, p2;
 		
+		cntMeasurements++;
+
 		p1 = followed.GetPosition();
 		p2 = ball.GetPosition();
 
@@ -294,8 +302,15 @@ stopMeasuring()
 
 	avgDistance = sumDistance / cntMeasurements;
 
-	cout << endl << "Latency: " << latency << endl;
-	cout << "Time: " << diff.tv_sec << "." << diff.tv_usec << " seconds" << endl;
+	if(followline) {
+		cout << endl << "Time: " << diff.tv_sec << "." << diff.tv_usec << " seconds" << endl;
+	}
+	else {
+		cout << endl << "Ball Speed: " << ballspeed << endl;
+		cout << endl << "Test Length: " << followtime << " seconds" << endl;
+	}
+
+	cout << "Latency: " << latency << endl;
 	cout << "Max Distance: " << maxDistance << endl;
 	cout << "Average Distance: " << avgDistance << endl;
 }
@@ -367,17 +382,17 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 	}
 	else {
 		if(coordinate_distance(ball.GetPosition()[0], ball.GetPosition()[1], followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
+			startMeasuring();
 			testing = true;
 			getMeasurements();
-			
-			cout << "first" << endl;
+			gettimeofday(&sTime, NULL);
 		}
 	}
 	
 	if(testing && followline) {
 		if (checkpoints.size() > 0) {
-			if (coordinate_distance(-mappedPos[0], -mappedPos[1], checkpoints.front().GetPosition()[0],
-						checkpoints.front().GetPosition()[1]) < epsilon) {
+			while (sqrt(pow(-mappedPos[0] - checkpoints.front().GetPosition()[0], 2.0) +
+						pow(-mappedPos[1] - checkpoints.front().GetPosition()[1], 2.0)) < epsilon) {
 				checkpoints.pop_front();
 			}
 		}
@@ -387,17 +402,31 @@ XN_CALLBACK_TYPE HandUpdate(xn::HandsGenerator &generator, XnUserID user,
 		}
 	}
 	else if(testing) {
+		gettimeofday(&eTime, NULL);
+
+		timeval dTime;
+
+		timersub(&eTime, &sTime, &dTime);
+
+		if (dTime.tv_sec + (dTime.tv_usec/1000000.0) > followtime) {
+			measure = false;
+			testing = false;
+			stopMeasuring();
+
+			pair<double, double> newPos = getRandomCoords();
+
+			followed.SetPosition(Vector3(newPos.first, newPos.second, 0.0));
+			followedTarget = getRandomCoords();
+		}
+
 		if(coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]) < epsilon) {
 			followedTarget = getRandomCoords();
 		}
 		else {
-			
 			double dx = (followedTarget.first - followed.GetPosition()[0]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
 			double dy = (followedTarget.second - followed.GetPosition()[1]) / coordinate_distance(followedTarget.first, followedTarget.second, followed.GetPosition()[0], followed.GetPosition()[1]);
-			
-			cout << dx << endl;
-			
-			followed.SetPosition(Vector3(followed.GetPosition()[0] + dx * normalspeed, followed.GetPosition()[1] + dy * normalspeed, 0.0));
+
+			followed.SetPosition(Vector3(followed.GetPosition()[0] + dx * speed, followed.GetPosition()[1] + dy * speed, 0.0));
 		}
 	}
 }
@@ -524,8 +553,6 @@ initBallScene() {
 	followed.setColour(Vector3(1.0, 0.1, 0.1));
 	
 	followedTarget = getRandomCoords();
-	
-	cout << followedTarget.first << " " << followed.GetPosition()[0] << endl;
 }
 
 /*
@@ -580,19 +607,32 @@ key_func(unsigned char key, int x, int y)
 			camera.RotateZ(-ROT_AMT);
 			break;
 		case '1':
-			readCoordinates("../data/curve1.txt");
+			readCoordinates("../data/edgy.txt");
+			read_checkpoints();
+			initCurveScene();
+			break;
+		case '2':
+			readCoordinates("../data/circles.txt");
+			read_checkpoints();
+			initCurveScene();
+			break;
+		case '3':
+			readCoordinates("../data/sin.txt");
 			read_checkpoints();
 			initCurveScene();
 			break;
 		case '4':
+			ballspeed = "Slow";
 			speed = slowspeed;
 			initBallScene();
 			break;
 		case '5':
+			ballspeed = "Normal";
 			speed = normalspeed;
 			initBallScene();
 			break;
 		case '6':
+			ballspeed = "Fast";
 			speed = fastspeed;
 			initBallScene();
 			break;
@@ -720,6 +760,9 @@ display_func(void)
 	
 	if(followline) {
 		path.Render();
+
+		checkpoints.front().setColour(Vector3(0.0, 1.0, 0.0));
+		checkpoints.front().setRadius(0.3);
 	
 		for (list<Donut>::iterator i = checkpoints.begin(); i != checkpoints.end(); i++) {
 			(*i).Render();
@@ -787,7 +830,7 @@ main(int argc, char *argv[])
 
 	init();
 
-	readCoordinates("../data/curve1.txt");
+	readCoordinates("../data/edgy.txt");
 	read_checkpoints();
 	initCurveScene();
 	
