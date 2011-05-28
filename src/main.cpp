@@ -66,7 +66,7 @@ int lastZ;
 int input_offset_x;
 int input_offset_y;
 int cntMeasurements = 0;
-int followtime = 15;
+int followtime = 20;
 
 double input_scale = 1.3;
 double max_path_block = 1.0;
