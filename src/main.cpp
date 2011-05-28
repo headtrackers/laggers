@@ -565,6 +565,8 @@ void
 update()
 {
 	nRetVal = context.WaitAnyUpdateAll();
+	if (nRetVal != XN_STATUS_OK)
+		return;
 	sessionManager.Update(&context);
 }
 
@@ -637,12 +639,12 @@ key_func(unsigned char key, int x, int y)
 			initBallScene();
 			break;
 		case 's':
-			latency += 50;
+			latency += 100;
 			changeLatency();
 			break;
 		case 'a':
 			if(latency > 0) {
-				latency -= 50;
+				latency -= 100;
 			}
 			changeLatency();
 			break;
